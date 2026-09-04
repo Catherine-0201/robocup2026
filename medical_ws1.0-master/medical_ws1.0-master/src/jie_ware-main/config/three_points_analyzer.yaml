@@ -1,0 +1,14 @@
+# 三点分析节点配置文件
+
+# 检测半径（米）- 在此半径内寻找三个模块点
+detection_radius: 0.20
+
+# 最小点数要求
+min_points: 3
+
+# 墙壁平行性判断阈值（度）
+# 如果两条线的角度差小于此阈值，则认为平行
+wall_parallel_threshold: 10.0
+
+# 日志节流周期（秒）
+log_throttle_period: 1.0

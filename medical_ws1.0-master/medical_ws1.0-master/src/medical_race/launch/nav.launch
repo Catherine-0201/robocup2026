@@ -1,0 +1,13 @@
+<launch>
+
+<group>
+  <!-- 开启机器人底层相关节点  -->
+  <include file="$(find medical_race)/src/launch/chassis_all_run.launch" />	                                                                                                             
+  </group>
+
+<node pkg="rviz" type="rviz" name="rviz" args="-d $(find medical_race)/src/launch/rviz.rviz"/>
+
+
+
+
+</launch>

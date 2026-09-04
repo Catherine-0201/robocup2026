@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>medical_race</name>
+  <version>0.1.0</version>
+  <description>Competition master controller for the medical delivery robot.</description>
+
+  <maintainer email="jetson@todo.todo">jetson</maintainer>
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>actionlib</depend>
+  <depend>actionlib_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>move_base_msgs</depend>
+  <depend>roborts_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>rospy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>serial</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>tf</depend>
+
+  <export/>
+</package>

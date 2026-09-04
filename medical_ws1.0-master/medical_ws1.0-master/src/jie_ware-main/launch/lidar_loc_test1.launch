@@ -1,0 +1,46 @@
+<launch>
+
+ 
+
+  <!-- Run the map server -->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find medical_race)/map/map3.yaml"/>
+
+  <!-- 雷达中心过滤节点（20cm过滤半径） -->
+  <!-- 数据流: /scan -> 中心过滤器 -> /scan_center_filtered -->
+  <rosparam file="$(find jie_ware)/config/lidar_center_filter.yaml" command="load" ns="lidar_center_filter_node"/>
+  <node name="lidar_center_filter_node" 
+        pkg="jie_ware" 
+        type="lidar_center_filter.py" 
+        output="screen">
+  </node>
+
+  <!-- 动态障碍物过滤器 (可选启用以提高定位鲁棒性) -->
+  <!-- 数据流: /scan_center_filtered -> 动态过滤器 -> /scan_filtered -->
+  <arg name="use_dynamic_filter" default="true" />
+  <node if="$(arg use_dynamic_filter)" pkg="jie_ware" type="dynamic_obstacle_filter.py" name="dynamic_obstacle_filter" output="screen">
+    <rosparam file="$(find jie_ware)/config/dynamic_obstacle_filter.yaml" command="load" />
+    <remap from="/scan" to="/scan_center_filtered" />
+  </node>
+
+  <!-- 使用鲁棒定位算法替代基础算法，更适合过滤数据 -->
+  <node pkg="jie_ware" type="robust_lidar_loc.py" name="robust_lidar_loc" output="screen">
+    <rosparam file="$(find jie_ware)/config/robust_lidar_loc.yaml" command="load" />
+    <!-- 根据是否使用动态过滤器选择最终的激光话题 -->
+    <param if="$(arg use_dynamic_filter)" name="laser_topic" value="scan_filtered" />
+    <param unless="$(arg use_dynamic_filter)" name="laser_topic" value="scan_center_filtered" />
+    <param name="debug_mode" value="false" />
+  </node>
+
+  <node name="rviz" pkg="rviz" type="rviz" required="true" output="screen"
+        args="-d $(find jie_ware)/rviz/config.rviz" />
+
+  <node pkg="jie_ware" type="set_initial_pose.py" name="set_initial_pose" output="screen" />
+
+  <!-- 激光雷达定位质量监控节点 - 针对过滤数据优化版本 -->
+  <!-- 功能: 基于帧间变化检测位姿突变，自动切换里程计备用定位 -->
+  <!-- 优化: 针对过滤数据调整阈值，增强稳定性，避免误触发 -->
+  <node pkg="jie_ware" type="lidar_localization_monitor.py" name="lidar_localization_monitor" output="screen">
+    <rosparam file="$(find jie_ware)/config/localization_monitor.yaml" command="load" />
+  </node>
+
+</launch>

@@ -1,0 +1,64 @@
+<launch>
+
+    <!-- ========================================= -->
+    <!-- 阶段2：速度自适应PID位置跟踪控制器        -->
+    <!-- 功能：根据当前速度线性调整P值              -->
+    <!-- 公式：P = P_min + (P_max - P_min) * (v/v_max) -->
+    <!-- ========================================= -->
+    
+    <node pkg="auto_nav" type="test_pid_position_follow-selfadaptingP" name="adaptive_pid_position_follow" respawn="true" output="screen" >
+        
+        <!-- ========== 基础运动参数 ========== -->
+        <param name="global_frame" value="map"/>
+        <param name="plan_frequency" value="20"/>           <!-- 控制频率 [Hz] - 优化：降低重规划频率 -->
+        
+        <!-- 适应医疗场景的速度设置 -->
+        <param name="max_x_speed" value="0.6"/>             <!-- X方向最大速度 [m/s] -->
+        <param name="max_y_speed" value="0.6"/>             <!-- Y方向最大速度 [m/s] -->
+        <param name="set_yaw_speed" value="0.15"/>           <!-- 角速度 [rad/s] -->
+        
+        <!-- 路径跟踪精度参数 -->
+        <param name="goal_dist_tolerance" value="0.25"/>    <!-- 目标距离容忍度 [m] -->
+        <param name="prune_ahead_distance" value="1.0"/>    <!-- 前瞻距离 [m] - 优化：减少左右偏移 -->
+        
+        <!-- ========== 传统PID参数 ========== -->
+        <param name="p_value" value="0.5"/>                 <!-- 基础P值（作为参考，实际使用自适应P值） -->
+        <param name="i_value" value="0.0"/>                 <!-- I值（当前未使用） -->
+        <param name="d_value" value="0.0"/>                 <!-- D值（当前未使用） -->
+        
+        <!-- ========== 阶段2：速度自适应参数 ========== -->
+        <!-- 核心算法：adaptive_p = min_p + (max_p - min_p) * (speed / v_max) -->
+        <param name="min_p_value" value="0.35"/>             <!-- 静止时的最小P值 - 平滑启动 -->
+        <param name="max_p_value" value="0.6"/>             <!-- 高速时的最大P值 - 快速响应 -->
+        <param name="v_max_for_adaptation" value="0.6"/>    <!-- 自适应参考最大速度 [m/s] -->
+        
+        <!-- ========== 阶段3：阈值化重规划参数 ========== -->
+        <!-- 功能：减少全局路径高频抖动，只有偏差较大时才接受新路径 -->
+        <param name="enable_path_threshold" value="false"/>           <!-- 是否启用阈值化重规划 -->
+        <param name="path_distance_threshold" value="0.3"/>          <!-- 路径距离阈值 [m] - 新路径偏离当前路径超过此值才更新 -->
+        <param name="path_angle_threshold" value="0.5"/>             <!-- 路径角度阈值 [rad] - 约28度，路径方向改变超过此值才更新 -->
+        <param name="path_update_min_interval" value="0.5"/>         <!-- 路径更新最小时间间隔 [s] - 防止过于频繁的路径切换 -->
+        <param name="path_comparison_points" value="5"/>             <!-- 用于比较的路径点数量 - 只比较前N个点，提高计算效率 -->
+        
+        <!-- ========== 预期效果说明 ========== -->
+        <!-- 速度 0.0 m/s -> P值 0.2 (平滑启动，避免突然加速) -->
+        <!-- 速度 0.2 m/s -> P值 0.35 (渐进控制) -->
+        <!-- 速度 0.4 m/s -> P值 0.5 (平衡性能) -->
+        <!-- 速度 0.8 m/s -> P值 0.8 (快速响应，精确跟踪) -->
+        
+        <!-- ========== 调试参数建议 ========== -->
+        <!-- 如果启动太慢：增大 min_p_value (0.2 -> 0.3) -->
+        <!-- 如果高速震荡：减小 max_p_value (0.8 -> 0.6) -->
+        <!-- 如果响应不够：增大 v_max_for_adaptation (0.8 -> 1.0) -->
+        
+        <!-- 将输出话题重映射到wheeltec_robot订阅的/cmd_vel -->
+        <remap from="/base_vel" to="/cmd_vel" />
+        
+    </node>
+
+    <!-- 可选：启动参数监控节点（设置if="true"来启用） -->
+    <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="adaptive_pid_tuner" output="screen" if="false">
+        <!-- 实时参数调节界面，方便现场调试 -->
+    </node>
+
+</launch>

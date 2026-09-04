@@ -1,0 +1,47 @@
+<launch>
+
+    <!-- Run the local trajectory planner - 使用带监控功能的测试版本 -->
+    <!-- 原版本（已注释）：
+    <node pkg="auto_nav" type="test_pid_position_follow" name="test_pid_position_follow" respawn="true" output="screen" >
+    -->
+    
+    <!-- 阶段3+：带监控功能的版本 -->
+    <node pkg="auto_nav" type="test_pid_position_follow-selfadaptingP_monitor" name="adaptive_pid_monitor" respawn="true" output="screen" >
+        <param name="global_frame" value="map"/>
+        <param name="plan_frequency" value="30"/>
+        
+        <!-- 适应医疗场景，降低最大速度 -->
+        <param name="max_x_speed" value="0.5"/>
+        <param name="max_y_speed" value="0.5"/>
+        <param name="set_yaw_speed" value="0.1"/>
+        
+        <param name="goal_dist_tolerance" value="0.25"/>
+        <param name="prune_ahead_distance" value="1.0"/>
+        
+        <!-- 调整PID参数，适应实际机器人 -->
+        <param name="p_value" value="0.5"/>
+        <param name="i_value" value="0.0"/>
+        <param name="d_value" value="0.0"/>
+        
+        <!-- 阶段2：速度自适应参数 -->
+        <param name="min_p_value" value="0.2"/>
+        <param name="max_p_value" value="0.5"/>
+        <param name="v_max_for_adaptation" value="0.5"/>
+        
+        <!-- 阶段3：阈值化重规划参数 -->
+        <param name="enable_path_threshold" value="true"/>
+        <param name="path_distance_threshold" value="0.3"/>
+        <param name="path_angle_threshold" value="0.5"/>
+        <param name="path_update_min_interval" value="0.5"/>
+        <param name="path_comparison_points" value="5"/>
+        
+        <!-- 阶段3+：监控参数 -->
+        <param name="enable_monitor" value="true"/>
+        <param name="monitor_csv_file" value="/home/jetson/code_files/robocup/medical_ws/data/path_threshold_monitor3.csv"/>
+        
+        <!-- 关键修改：将输出话题重映射到wheeltec_robot订阅的/cmd_vel -->
+        <remap from="/base_vel" to="/cmd_vel" />
+        
+    </node>
+
+</launch>

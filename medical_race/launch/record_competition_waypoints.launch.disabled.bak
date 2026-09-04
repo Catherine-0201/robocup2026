@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    独立的比赛坐标记录器：不修改、也不替代 get_point.launch。
+    默认从 /tf_xy 读取，与 get_point 界面显示的 x/y 使用同一来源。
+  -->
+
+  <arg name="source" default="tf_xy" />
+  <arg name="tf_xy_topic" default="/tf_xy" />
+  <arg name="unified_pose_topic" default="/unified_pose" />
+  <arg name="output_file"
+       default="$(find medical_race)/config/competition_waypoints.yaml" />
+
+  <node pkg="medical_race"
+        type="record_competition_waypoints.py"
+        name="competition_waypoint_recorder"
+        output="screen">
+    <param name="source" value="$(arg source)" />
+    <param name="tf_xy_topic" value="$(arg tf_xy_topic)" />
+    <param name="unified_pose_topic" value="$(arg unified_pose_topic)" />
+    <param name="output_file" value="$(arg output_file)" />
+    <param name="hold_seconds" value="5.0" />
+  </node>
+</launch>
+

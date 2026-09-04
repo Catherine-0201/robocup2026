@@ -1,0 +1,13 @@
+<launch>
+<rosparam file="$(find pid_tracking)/params/pid.yaml" command="load" />
+<rosparam file="$(find robcup)/data/distance.yaml" command="load" />
+<!-- <node pkg="pid_tracking" name="pid_track" type="pid_tracking_node" output="screen" > -->
+<node pkg="pid_tracking" name="pid_track" type="task_new.py" output="screen" /> 
+    
+    <!-- <param name="final_max_vel" type="double" value="1"/>     -->
+<node pkg="robcup" name="LidarLine" type="GetDistanceByLidarLine.py" /> 
+<node pkg="robcup" name="lidar_distance" type="DisplayScreen.py" /> 
+<!-- <node pkg="rviz" type="rviz" name="rviz" args="-d $(find medical_race)/launch/rviz.rviz"/> -->
+
+
+</launch> 

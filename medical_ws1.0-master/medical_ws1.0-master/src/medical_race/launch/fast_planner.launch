@@ -1,0 +1,12 @@
+<launch>
+<node name="lidar2world" pkg="lidar2world" type="lidar2world_node"/>
+   <include file="$(find plan_manage)/launch/16_lidar.launch" >
+    <!-- <remap from="odom_combined" to="/odom" />  -->
+    <!-- <arg name="odom_topic" value="/odom" velodyne_points/> -->
+    <arg name="cloud_topic" value="point_cloud_map"/>
+  </include>
+  
+    <!-- <node name="mpc_track" pkg="mpc_tracking" type="mpc_tracking_node"/> -->
+<node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find medical_race)/traj.rviz" />
+
+</launch>

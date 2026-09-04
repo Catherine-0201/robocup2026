@@ -1,0 +1,32 @@
+<launch>
+  <!-- 新任务测试Launch文件 - 集成两阶段导航 -->
+  
+  <!-- 加载PID参数 -->
+  <rosparam file="$(find pid_tracking)/params/pid.yaml" command="load" />
+  
+  <!-- 加载距离参数 -->
+  <rosparam file="$(find robcup)/data/distance.yaml" command="load" />
+  
+  <!-- 启动定位系统 -->
+  <include file="$(find jie_ware)/launch/lidar_loc_test.launch"/>
+  
+  <!-- 启动导航系统 -->
+  <include file="$(find auto_nav)/launch/test_navi_simple_meca_car_pid.launch"/>
+  
+  <!-- 启动激光雷达距离检测节点 -->
+  <node pkg="robcup" name="LidarLine" type="GetDistanceByLidarLine.py" output="screen" /> 
+  
+  <!-- 启动距离显示节点 -->
+  <node pkg="robcup" name="lidar_distance" type="DisplayScreen.py" output="screen" /> 
+  
+  <!-- 启动新任务测试脚本 -->
+  <node pkg="pid_tracking" name="newtask_test" type="newtask_test.py" output="screen" />
+  
+  <!-- 可选：启动RViz可视化 -->
+  <!-- <node pkg="rviz" type="rviz" name="rviz" args="-d $(find medical_race)/launch/rviz.rviz"/> -->
+
+</launch>
+
+
+
+

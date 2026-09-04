@@ -1,0 +1,23 @@
+<launch>
+
+  <!-- 运行地图服务器 -->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find medical_race)/map/map3.yaml"/>
+
+  <!-- 鲁棒激光雷达定位算法 -->
+  <node pkg="jie_ware" type="robust_lidar_loc.py" name="robust_lidar_loc" output="screen">
+    <rosparam file="$(find jie_ware)/config/robust_lidar_loc.yaml" command="load" />
+  </node>
+
+  <!-- 激光雷达定位监控节点 -->
+  <node pkg="jie_ware" type="lidar_localization_monitor.py" name="lidar_localization_monitor" output="screen">
+    <rosparam file="$(find jie_ware)/config/localization_monitor.yaml" command="load" />
+  </node>
+
+  <!-- RViz -->
+  <node name="rviz" pkg="rviz" type="rviz" required="true" output="screen"
+        args="-d $(find jie_ware)/rviz/config.rviz" />
+
+  <!-- 设置初始位姿 -->
+  <node pkg="jie_ware" type="set_initial_pose.py" name="set_initial_pose" output="screen" />
+
+</launch>

@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- <node name="map_server" pkg="map_server" type="map_server" args="$(find auto_nav)/map/map_game.yaml" output="screen"> -->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find auto_nav)/map/rmuc_map_draw.yaml" output="screen">
+   <param name="frame_id" value="map" />
+  </node>
+
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find auto_nav)/config/rviz/auto_navi_demo.rviz"/>
+
+  <!-- <include file="$(find auto_nav)/launch/amcl_simple_meca_car.launch"/> -->
+  <include file="$(find scan_to_map)/launch/scan_to_map_location.launch"/>
+
+  
+  <!--Launch the move base with time elastic band-->
+  <param name="/use_sim_time" value="true"/>
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <rosparam file="$(find auto_nav)/config/point_pid_params/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find auto_nav)/config/point_pid_params/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find auto_nav)/config/point_pid_params/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find auto_nav)/config/point_pid_params/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find auto_nav)/config/point_pid_params/teb_local_planner_params.yaml" command="load" />
+    
+    <param name="base_global_planner" value="global_planner/GlobalPlanner" />
+    <!--<param name="neutral_cost" value="220" />-->
+    <param name="planner_frequency" value="3.0" />
+    <param name="planner_patience" value="5.0" />
+    <param name="use_dijkstra" value="false" />
+    
+    <!-- <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" />
+    <param name="controller_frequency" value="20.0" />
+    <param name="controller_patience" value="15.0" /> -->
+
+    <param name="clearing_rotation_allowed" value="false" />
+    <remap from="/cmd_vel" to="/" />
+  </node>
+
+  <include file="$(find auto_nav)/launch/pid_follow_planner.launch"/>
+
+  <!-- ========== 真实速度和加速度监视系统 ========== -->
+  <!-- 启动真实速度加速度监视节点（修正版本：监视里程计实际速度） -->
+  <node pkg="auto_nav" type="real_velocity_acceleration_monitor.py" name="real_velocity_acceleration_monitor" 
+        output="screen" respawn="true">
+    <param name="monitor_rate" value="20"/>        <!-- 监控频率 [Hz] -->
+    <param name="history_size" value="10"/>        <!-- 历史数据窗口大小 -->
+    <param name="odom_topic" value="/odom"/>       <!-- 里程计话题：实际速度来源 -->
+    <param name="ekf_topic" value="/robot_pose_ekf/odom_combined"/> <!-- EKF融合话题 -->
+    <param name="use_ekf" value="false"/>          <!-- 暂不使用EKF（仅监视位置） -->
+  </node>
+
+  <!-- ========== RQT可视化监控系统 ========== -->
+  <!-- 参数：是否启用rqt监控（可以设为false禁用） -->
+  <arg name="enable_rqt_monitor" default="true"/>
+  
+  <group if="$(arg enable_rqt_monitor)">
+    <!-- 实际vs期望速度对比监视 -->
+    <node pkg="rqt_plot" type="rqt_plot" name="velocity_comparison_monitor" 
+          args="/monitor/actual_velocity/x /monitor/cmd_velocity/x /monitor/actual_velocity/y /monitor/cmd_velocity/y" 
+          output="screen" respawn="true"/>
+    
+    <!-- 实际加速度监视（真正的加速度） -->
+    <node pkg="rqt_plot" type="rqt_plot" name="actual_acceleration_monitor" 
+          args="/monitor/actual_acceleration/x /monitor/actual_acceleration/y /monitor/actual_acceleration/angular" 
+          output="screen" respawn="true"/>
+    
+    <!-- 速度跟踪误差监视 -->
+    <node pkg="rqt_plot" type="rqt_plot" name="velocity_error_monitor" 
+          args="/monitor/velocity_error/x /monitor/velocity_error/y /monitor/velocity_error/angular" 
+          output="screen" respawn="true"/>
+    
+    <!-- 速度和加速度大小对比 -->
+    <node pkg="rqt_plot" type="rqt_plot" name="magnitude_comparison_monitor" 
+          args="/monitor/actual_speed_magnitude /monitor/cmd_speed_magnitude /monitor/actual_acceleration_magnitude" 
+          output="screen" respawn="true"/>
+    
+    <!-- 可选：启动rqt控制台查看日志 -->
+    <!-- <node pkg="rqt_console" type="rqt_console" name="rqt_console" output="screen"/> -->
+    
+    <!-- 可选：启动rqt参数动态调节界面 -->
+    <!-- <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" output="screen"/> -->
+  </group>
+
+  <!-- ========== 真实监控系统使用说明 ========== -->
+  <!-- 修正版监控系统 - 监视真实里程计数据vs控制指令
+       
+       启动后将显示以下监控窗口：
+       1. velocity_comparison_monitor: 实际vs期望速度对比（X,Y分量）
+       2. actual_acceleration_monitor: 真实加速度（基于里程计计算）  
+       3. velocity_error_monitor: 速度跟踪误差（实际-期望）
+       4. magnitude_comparison_monitor: 速度和加速度大小对比
+       
+       关键数据源：
+       - 实际速度：来自 /odom 里程计（wheeltec_robot_node发布）
+       - 期望速度：来自 /cmd_vel 控制指令
+       - 真实加速度：基于实际速度历史计算
+       - 跟踪性能：实际vs期望的差异分析
+       
+       发布的话题：
+       - /monitor/actual_velocity/* : 真实速度（来自里程计）
+       - /monitor/cmd_velocity/* : 期望速度（来自控制指令）
+       - /monitor/actual_acceleration/* : 真实加速度
+       - /monitor/velocity_error/* : 速度跟踪误差
+       - /monitor/*_magnitude : 各种速度和加速度大小
+       
+       验证目标：
+       ✓ 检查机器人是否能跟上控制指令
+       ✓ 验证加速度限制是否在实际运动中生效
+       ✓ 分析控制系统的跟踪性能
+       ✓ 对比adaptive_pid的实际控制效果
+       
+       使用方法：
+       启用真实监控: roslaunch auto_nav navi_simple_meca_car_pid.launch
+       禁用监控: roslaunch auto_nav navi_simple_meca_car_pid.launch enable_rqt_monitor:=false
+  -->
+
+</launch>

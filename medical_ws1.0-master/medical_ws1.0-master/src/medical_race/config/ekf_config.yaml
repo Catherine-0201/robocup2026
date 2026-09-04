@@ -1,0 +1,65 @@
+   # 基本设置
+    frequency: 30.0  # 滤波器更新频率 (Hz)
+    sensor_timeout: 0.1  # 传感器数据超时时间 (秒)
+    two_d_mode: true  # 限制为2D运动（全向轮机器人通常在平面运动）
+    transform_name: odom  # 输出坐标系名称
+    transform_timeout: 0.0  # 坐标变换超时时间 (0表示无超时)
+    print_diagnostics: true  # 启用诊断信息输出
+    debug: false  # 禁用调试模式
+
+    # 坐标系设置
+    map_frame: map  # 全局坐标系
+    odom_frame: odom  # 里程计坐标系
+    base_link_frame: base_footprint        
+    world_frame: odom  # 世界坐标系（通常与odom_frame一致）
+
+    # 过程噪声协方差矩阵（针对全向轮机器人）
+    # process_noise_covariance: [
+    #   0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # X
+    #   0.0, 0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # Y
+    #   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # Z
+    #   0.0, 0.0, 0.0, 0.025, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # Roll
+    #   0.0, 0.0, 0.0, 0.0, 0.025, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # Pitch
+    #   0.0, 0.0, 0.0, 0.0, 0.0, 0.04, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # Yaw
+    #   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # VX
+    #   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # VY
+    #   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # VZ
+    #   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0,  # V_Roll
+    #   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 0.0,  # V_Pitch
+    #   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.02, 0.0, 0.0, 0.0,  # V_Yaw
+    #   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # AX
+    #   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # AY
+    #   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0   # AZ
+    # ]
+
+    # 传感器输入配置
+    # 轮式里程计输入（全向轮机器人）
+    odom0: /odom
+    odom0_config: [true, true, false,  # X, Y, Z
+                   false, false, true,  # Roll, Pitch, Yaw
+                   true, true, false,  # VX, VY, VZ
+                   false, false, true,  # V_Roll, V_Pitch, V_Yaw
+                   false, false, false] # AX, AY, AZ
+    odom0_queue_size: 10
+    odom0_differential: false  # 全向轮不需要差分模式
+    odom0_pose_rejection_threshold: 5.0  # 异常位姿拒绝阈值
+    odom0_twist_rejection_threshold: 1.0  # 异常速度拒绝阈值
+
+    # IMU输入
+    imu0: /imu_on_board
+    imu0_config: [false, false, false,  # X, Y, Z
+                  false, false, true,  # Roll, Pitch, Yaw
+                  false, false, false,  # VX, VY, VZ
+                  true, true, true,  # V_Roll, V_Pitch, V_Yaw
+                  true, true, false]  # AX, AY, AZ
+    imu0_queue_size: 10
+    imu0_differential: false
+    imu0_remove_gravitational_acceleration: true  # 移除重力加速度影响
+    imu0_pose_rejection_threshold: 0.8  # 异常姿态拒绝阈值
+    imu0_twist_rejection_threshold: 0.8  # 异常角速度拒绝阈值
+    imu0_linear_acceleration_rejection_threshold: 0.8  # 异常加速度拒绝阈值
+
+    # 坐标变换设置
+    transform_tolerance: 0.2  # 坐标变换发布延迟容忍度 (秒)
+    broadcast_odom_tf: true  # 发布odom到base_link的TF变换
+```

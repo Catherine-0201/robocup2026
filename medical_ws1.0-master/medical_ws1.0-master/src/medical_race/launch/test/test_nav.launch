@@ -1,0 +1,27 @@
+<launch>
+  <!-- 定义launch参数，可以通过命令行覆盖 -->
+  <arg name="task_type" default="1" doc="Task type: 1 for Left first then Right, 2 for Right first then Left"/>
+  
+  <!-- 加载PID参数配置 -->
+  <rosparam file="$(find pid_tracking)/params/pid.yaml" command="load" />
+  
+  <!-- 加载距离参数配置 -->
+  <rosparam file="$(find robcup)/data/distance.yaml" command="load" />
+  
+  <!-- 启动测试任务节点 -->
+  <!-- 使用方式: rosrun pid_tracking task_test.py 1 (或 2) -->
+  <!-- 1: 先左后右, 2: 先右后左 -->
+  <node pkg="pid_tracking" name="test_task" type="task_test.py" output="screen" args="$(arg task_type)">
+    <!-- 通过args传递命令行参数，1表示先左后右，2表示先右后左 -->
+  </node>
+  
+  <!-- 启动激光雷达距离检测节点 -->
+  <node pkg="robcup" name="LidarLine" type="GetDistanceByLidarLine.py" output="screen" />
+  
+  <!-- 启动距离显示节点 -->
+  <node pkg="robcup" name="lidar_distance" type="DisplayScreen.py" output="screen" />
+  
+  <!-- 可选：启动RViz可视化 -->
+  <!-- <node pkg="rviz" type="rviz" name="rviz" args="-d $(find medical_race)/launch/rviz.rviz"/> -->
+  
+</launch>

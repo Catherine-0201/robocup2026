@@ -1,0 +1,11 @@
+# 雷达中心过滤器配置文件
+
+# 过滤半径（米）- 默认20厘米
+filter_radius: 0.20
+
+# 日志输出频率（秒）
+log_throttle_period: 1.0
+
+# 话题名称
+input_topic: "/scan"
+output_topic: "/scan_filtered"

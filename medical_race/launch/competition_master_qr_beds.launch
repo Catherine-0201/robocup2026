@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    在原四段总控基础上，于护士台到达并停留2秒后读取二维码。
+
+    保留护士台、两个床位和返航；两个床位的先后顺序由二维码首位决定。
+    继续复用 competition_waypoints.yaml 中的坐标和床位5秒停留配置。
+    gm65.py、定位、move_base 和 B 样条控制器必须提前单独启动。
+    不要同时启动 medical_competition_master_new.py 或 task_new.py。
+  -->
+  <arg name="waypoints_file"
+       default="$(find medical_race)/config/competition_waypoints.yaml"/>
+  <arg name="nurse_hold_seconds" default="2.0"/>
+
+  <node pkg="medical_race"
+        type="medical_competition_master_qr_beds.py"
+        name="medical_competition_master_qr_beds"
+        output="screen">
+    <rosparam command="load" file="$(arg waypoints_file)"/>
+    <param name="frame_id" value="map"/>
+    <param name="move_base_action" value="/move_base"/>
+    <param name="target_done_topic" value="/target_done"/>
+    <param name="scan_topic" value="/gm65_data"/>
+    <param name="nurse_hold_seconds" value="$(arg nurse_hold_seconds)"/>
+  </node>
+</launch>

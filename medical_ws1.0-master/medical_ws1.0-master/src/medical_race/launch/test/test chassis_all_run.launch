@@ -1,0 +1,50 @@
+<launch>
+  <!-- Arguments参数 -->
+  <arg name="lidar_is_cx" default="false"/>
+  <arg name="car_mode"  default="senior_omni" 
+       doc="opt: mini_akm,senior_akm,top_akm_bs,top_akm_dl,
+                 mini_mec,senior_mec_bs,senior_mec_dl,top_mec_bs,top_mec_dl,senior_mec_EightDrive,top_mec_EightDrive,
+                 flagship_mec_bs,flagship_mec_dl,
+                 mini_omni,senior_omni,top_omni,
+                 mini_4wd,senior_4wd_bs,senior_4wd_dl,top_4wd_bs,top_4wd_dl,flagship_4wd_bs,flagship_4wd_dl,
+                 mini_tank,mini_diff,senior_diff,four_wheel_diff_bs,four_wheel_diff_dl,flagship_four_wheel_diff_dl,flagship_four_wheel_diff_bs, 
+                 brushless_senior_diff,
+                 mini_tank_moveit,mini_4wd_moveit_four,mini_mec_moveit_four
+                 mini_mec_moveit_six,mini_4wd_moveit_six"/>
+
+
+  <!--是否为akm系列车型 在语音导航功能中需要进行判断-->
+  <param name="if_akm_yes_or_no" value="no"/>
+
+
+  <!--是否使用cartographer建图算法 此处默认不使用-->
+  <arg name="is_cartographer"  default="false"/>
+  <arg name="odom_frame_id"  default="odom"/>
+
+  <!-- turn on base_serial 开启底层单片机的控制节点  -->
+  <node pkg="turn_on_wheeltec_robot" type="wheeltec_robot_node" name="wheeltec_robot" output="screen" respawn="false">
+    <param name="usart_port_name"    type="string" value="/dev/wheeltec_controller"/>  
+    <param name="serial_baud_rate"   type="int"    value="115200"/>
+    <param name="odom_frame_id"      type="string" value="$(arg odom_frame_id)"/> 
+    <param name="robot_frame_id"     type="string" value="base_footprint"/> 
+    <param name="gyro_frame_id"      type="string" value="gyro_link"/> 
+    <!-- 使用外部惯导，不用板载MPU6050-->
+    <remap from="imu" to="imu_on_board"/>
+    </node>
+  <include file="$(find medical_race)/launch/robot_model_visualization.launch">
+    <arg name="car_mode" value="$(arg car_mode)"/>
+  </include>
+  <!-- 开启扫码节点  -->
+  <node pkg="medical_race" type="gm65.py" name="gm65"/>
+    <!-- turn on imu 开启IMU节点  -->
+   <!-- <include file="$(find xsens_mti_driver)/launch/xsens_mti_node.launch" /> -->
+   <node pkg="handsfree_ros_imu" type="hfi_b6_ros.py" name="imu"/>
+
+   <!-- turn on rplidar 开启的lidar控制节点  -->
+   <!-- <include file="$(find velodyne_pointcloud)/launch/VLP16_points.launch" /> -->
+     <include file="$(find rplidar_ros)/launch/rplidar_a3.launch" />
+   <!-- turn on 里程计节点-->
+   <include file="$(find medical_race)/launch/robot_pose_ekf.launch" />
+
+
+</launch>   

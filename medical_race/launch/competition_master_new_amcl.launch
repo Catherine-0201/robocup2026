@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    AMCL-compatible copy of competition_master_new.launch.
+
+    The control logic is unchanged: send nurse -> bed1 -> bed3 -> home goals
+    and use only /target_done increments as the arrival condition.  It does not
+    use PID, /unified_pose, /amcl_pose, or a localization status topic.
+
+    Start AMCL and test_bspline_follow_amcl.launch before this launch.
+  -->
+  <arg name="waypoints_file"
+       default="$(find medical_race)/config/competition_waypoints.yaml"/>
+
+  <node pkg="medical_race"
+        type="medical_competition_master_new_amcl.py"
+        name="medical_competition_master_new_amcl"
+        output="screen">
+    <rosparam command="load" file="$(arg waypoints_file)"/>
+    <param name="frame_id" value="map"/>
+    <param name="move_base_action" value="/move_base"/>
+    <param name="target_done_topic" value="/target_done"/>
+    <param name="initial_target_done_count" value="0"/>
+  </node>
+</launch>

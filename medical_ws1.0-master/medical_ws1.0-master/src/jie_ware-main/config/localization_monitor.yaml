@@ -1,0 +1,65 @@
+# 激光雷达定位监控节点配置文件 - 专门监控 lidar_loc.cpp 的 TF 变换
+
+# 坐标系名称
+map_frame: "map"
+odom_frame: "odom"
+base_frame: "base_footprint"
+laser_frame: "laser"
+
+# map->odom 变换突变检测参数（专门针对 lidar_loc.cpp 的定位质量）
+position_jump_threshold: 1.0    # map->odom 变换位移突变阈值(米)
+rotation_jump_threshold: 0.5    # map->odom 变换角度突变阈值(弧度)
+velocity_threshold: 3.0         # map->odom 变换最大合理速度(米/秒)
+angular_velocity_threshold: 2.0 # map->odom 变换最大合理角速度(弧度/秒)
+
+# 恢复机制参数
+stable_frames_required: 10      # 恢复需要的连续稳定帧数 - 增加稳定性
+max_fallback_duration: 15.0     # 最大备用定位时间 (秒)
+
+# lidar_loc.cpp TF 监控参数
+startup_delay: 5.0              # 启动延迟时间(秒) - 等待 lidar_loc.cpp 稳定
+monitoring_frequency: 30.0      # TF 监控频率(Hz)
+min_time_between_switches: 2.0  # 最小切换间隔(秒)
+
+# map->odom 变换滤波参数
+use_moving_average: true        # 是否对 map->odom 变换使用移动平均滤波
+moving_average_window: 3        # 移动平均窗口大小
+
+# 辅助监控参数（基于激光数据质量）
+use_filtered_scan: true         # 是否使用过滤后的激光数据评估置信度
+low_confidence_threshold: 0.5   # 低置信度阈值（触发备用定位）
+
+# 备用定位参数
+backup_tf_rate: 30.0            # 备用TF发布频率(Hz)
+smooth_transition: true         # 是否使用平滑过渡
+
+# 里程计话题配置
+use_odom_combined: true         # 是否优先使用 odom_combined 话题
+odom_topic: "/odom"             # 备用里程计话题
+odom_combined_topic: "/odom_combined"  # 融合里程计话题
+
+# 统一定位数据发布配置
+enable_unified_publishing: true  # 是否启用统一定位数据发布
+unified_pose_topic: "/unified_pose"  # 统一定位位姿话题
+unified_tf_status_topic: "/unified_tf_status"  # 统一TF状态话题
+
+# 里程计定位优化参数
+enable_motion_filtering: true   # 启用运动滤波减少抖动
+motion_filter_alpha: 0.8        # 运动滤波系数(0-1) - 越大越平滑但响应越慢
+max_linear_velocity: 2.0        # 最大线性速度限制(m/s) - 超过则认为异常
+max_angular_velocity: 1.5       # 最大角速度限制(rad/s) - 超过则认为异常
+drift_correction_interval: 2.0  # 漂移修正间隔(秒) - 定期微调
+position_variance_threshold: 0.1  # 位置方差阈值 - 用于检测定位质量
+enable_velocity_smoothing: true # 启用速度平滑
+velocity_window_size: 5         # 速度平滑窗口大小
+
+# TF 监控调试参数
+debug_mode: false               # 是否开启调试模式
+log_tf_changes: true            # 是否记录 TF 变换变化
+log_level: "INFO"              # 日志级别
+
+# 地图匹配恢复参数
+enable_map_matching: true       # 是否启用地图匹配检查
+map_match_threshold: 0.30       # 地图匹配度阈值(0-1) - 恢复时要求达到此匹配度
+match_check_radius: 5.0         # 匹配检查半径(米) - 只检查此范围内的激光点
+min_match_points: 50            # 最少匹配点数 - 少于此数量将认为数据不足

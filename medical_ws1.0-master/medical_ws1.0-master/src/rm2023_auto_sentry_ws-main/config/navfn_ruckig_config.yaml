@@ -1,0 +1,42 @@
+# NavfnRuckig医疗机器人规划器配置文件
+# 参考adaptive_pid架构，专注于核心功能参数
+
+# ============== 基础规划参数 ==============
+# 参考你现有的adaptive_pid_follow_planner配置
+max_velocity: 1.0                    # 整体最大速度 [m/s] - 对应max_x_speed
+plan_frequency: 20                   # 规划频率 [Hz] - 与adaptive_pid保持一致
+goal_dist_tolerance: 0.25            # 到达目标的距离容差 [m] - 与adaptive_pid保持一致
+prune_ahead_distance: 1.0            # 路径剪枝前瞻距离 [m] - 与adaptive_pid保持一致
+global_frame: "map"                  # 全局坐标系
+robot_frame: "base_footprint"        # 机器人坐标系
+
+# ============== Ruckig轨迹生成参数 ==============
+trajectory_time_step: 0.1            # 轨迹时间步长 [s] (影响轨迹平滑度)
+trajectory_duration: 3.0             # 轨迹最大时长 [s] (避免计算过长轨迹)
+
+# ============== 核心功能：速度分段加速度限制 ==============
+# 格式: [速度下限, 速度上限, x加速度限制, y加速度限制, 角加速度限制]
+# 单位: [m/s, m/s, m/s², m/s², rad/s²]
+# 这是你要求的核心功能，参数化配置避免重新编译
+velocity_acceleration_limits:
+  # 静止到低速区间：保守的加速度，确保平稳启动
+  - [0.0, 0.5, 0.2, 0.2, 0.5]
+  
+  # 中速区间：适当提高加速度，平衡安全性和效率
+  - [0.5, 1.0, 0.3, 0.3, 0.8]
+  
+  # 后续可以添加更多速度区间，例如：
+  # - [1.0, 1.5, 0.4, 0.4, 1.0]
+
+# ============== 阈值化重规划参数 ==============
+# 复用原有成熟的阈值化重规划功能
+enable_path_threshold: true          # 是否启用阈值化重规划
+path_distance_threshold: 0.3         # 路径距离阈值 [m] - 新路径偏离当前路径超过此值才接受
+path_angle_threshold: 0.52           # 路径角度阈值 [rad] (~30度) - 路径方向改变超过此值才接受  
+path_update_min_interval: 1.0        # 路径更新最小时间间隔 [s] - 距离上次接受新路径的最小间隔
+path_comparison_points: 5            # 用于比较的路径点数量
+
+# ============== 医疗机器人安全参数 ==============
+emergency_stop_enabled: true         # 是否启用紧急停止功能
+max_planning_time: 1.0               # 最大规划时间 [s]
+recovery_enabled: true              # 是否启用恢复行为

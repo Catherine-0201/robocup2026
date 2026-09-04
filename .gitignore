@@ -1,0 +1,19 @@
+build/
+devel/
+install/
+log/
+logs/
+
+**/__pycache__/
+*.pyc
+*.pyo
+
+*.bag
+*.bag.active
+
+.vscode/
+.idea/
+
+# Git for Windows cannot open this legacy image because COM3 is a reserved
+# Windows device name. It is documentation-only and not required at runtime.
+**/tutorials/img/doc/com3.jpg

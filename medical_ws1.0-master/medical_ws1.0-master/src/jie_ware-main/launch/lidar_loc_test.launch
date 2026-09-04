@@ -1,0 +1,29 @@
+<launch>
+ <node name="map_server" pkg="map_server" type="map_server" args="$(find medical_race)/map/map4.yaml"/>
+ <node pkg="jie_ware" type="lidar_loc_copy" name="lidar_loc_copy" output="screen">
+    <param name="base_frame" value="base_footprint" />
+    <param name="odom_frame" value="odom" />
+    <param name="laser_frame" value="laser" />
+    <param name="laser_topic" value="scan_filtered" />
+    <param name="debug" value="true" />
+  </node>
+  <!-- 加载配置参数 -->
+    <rosparam file="$(find jie_ware)/config/lidar_center_filter.yaml" command="load" ns="lidar_center_filter_node"/>
+    
+    <!-- 雷达中心过滤节点 -->
+    <node name="lidar_center_filter_node" 
+          pkg="jie_ware" 
+          type="lidar_center_filter.py" 
+          output="screen">
+    </node>
+
+    <!-- <node pkg="jie_ware" type="costmap_cleaner" name="costmap_cleaner" /> -->
+    
+  <node name="rviz" pkg="rviz" type="rviz" required="true" output="screen"
+        args="-d $(find jie_ware)/rviz/config1.rviz" />
+  <node pkg="jie_ware" type="set_initial_pose.py" name="set_initial_pose" output="screen" respawn="false" />
+ 
+  <node pkg="jie_ware" type="lidar_localization_monitor.py" name="lidar_localization_monitor" output="screen">
+    <rosparam file="$(find jie_ware)/config/localization_monitor.yaml" command="load" />
+  </node>
+</launch>

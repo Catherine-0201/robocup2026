@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Start AMCL separately with jie_ware/amcl_robust_test.launch. -->
+  <arg name="waypoints_file" default="$(find medical_race)/config/competition_waypoints.yaml"/>
+  <arg name="precision_radius" default="0.60"/>
+  <param name="/use_sim_time" value="false"/>
+
+  <!-- Existing distance extractor: /scan -> /lidar_distances
+       Float32MultiArray [front, left, right]. -->
+  <node pkg="robcup" type="GetDistanceByLidarLine.py"
+        name="hybrid_lidar_line_distance" output="screen">
+    <!-- Robust sector statistics instead of strict adjacent-point fitting. -->
+    <param name="sector_half_angle_deg" value="12.0"/>
+    <param name="minimum_range" value="0.20"/>
+    <param name="maximum_range" value="1.50"/>
+    <param name="min_valid_points" value="5"/>
+    <param name="minimum_outlier_band" value="0.05"/>
+    <param name="mad_scale" value="3.5"/>
+    <param name="temporal_window" value="3"/>
+    <param name="invalid_hold_time" value="0.20"/>
+  </node>
+
+  <!-- One shared global planner. Its own velocity output is isolated. -->
+  <node pkg="move_base" type="move_base" name="move_base" output="screen">
+    <rosparam file="$(find auto_nav)/config/guard_amcl_costmap_common.yaml" command="load" ns="global_costmap"/>
+    <rosparam file="$(find auto_nav)/config/guard_amcl_costmap_common.yaml" command="load" ns="local_costmap"/>
+    <rosparam file="$(find auto_nav)/config/guard_amcl_local_costmap.yaml" command="load"/>
+    <rosparam file="$(find auto_nav)/config/guard_amcl_global_costmap.yaml" command="load"/>
+    <rosparam file="$(find auto_nav)/config/point_pid_params/test_medical_params/test_teb_local_planner_params.yaml" command="load"/>
+    <param name="base_global_planner" value="global_planner/GlobalPlanner"/>
+    <param name="planner_frequency" value="0.2"/>
+    <param name="planner_patience" value="5.0"/>
+    <param name="use_dijkstra" value="false"/>
+    <param name="clearing_rotation_allowed" value="false"/>
+    <remap from="/cmd_vel" to="/move_base_cmd_vel"/>
+  </node>
+
+  <!-- Existing B-spline controller, unchanged, behind private interfaces. -->
+  <node pkg="auto_nav" type="test_Bspline_guard_amcl"
+        name="bspline_position_guard_amcl" output="screen">
+    <param name="a_max" value="0.4"/>
+    <param name="d_max" value="0.3"/>
+    <param name="a_lat_max" value="0.1"/>
+    <param name="max_linear_speed" value="0.35"/>
+    <param name="max_angular_speed" value="0.2"/>
+    <param name="lookahead_idx" value="3"/>
+    <param name="goal_dist_tolerance" value="0.20"/>
+    <param name="path_goal_match_tolerance" value="0.15"/>
+    <param name="yaw_pid" value="0.6"/>
+    <param name="cmd_vel_topic" value="/hybrid_control/bspline_cmd"/>
+    <remap from="/target_done" to="/hybrid_control/bspline_done"/>
+  </node>
+
+  <!-- Existing adaptive PID controller, unchanged, also isolated. -->
+  <node pkg="auto_nav" type="test_pid_position_follow-selfadaptingP"
+        name="bedside_pid_position_follow" output="screen">
+    <param name="global_frame" value="map"/>
+    <param name="plan_frequency" value="30"/>
+    <param name="max_x_speed" value="0.18"/>
+    <param name="max_y_speed" value="0.18"/>
+    <param name="set_yaw_speed" value="0.0"/>
+    <param name="goal_dist_tolerance" value="0.05"/>
+    <param name="prune_ahead_distance" value="0.20"/>
+    <param name="min_p_value" value="0.22"/>
+    <param name="max_p_value" value="0.45"/>
+    <param name="v_max_for_adaptation" value="0.18"/>
+    <param name="enable_path_threshold" value="false"/>
+    <remap from="/base_vel" to="/hybrid_control/pid_cmd"/>
+    <remap from="/target_done" to="/hybrid_control/pid_done"/>
+  </node>
+
+  <!-- The only publisher allowed to drive the chassis and public done topic. -->
+  <node pkg="medical_race" type="hybrid_precision_mux.py"
+        name="hybrid_precision_mux" required="true" output="screen">
+    <rosparam command="load" file="$(arg waypoints_file)"/>
+    <rosparam param="precision_waypoints">[bed1, bed3]</rosparam>
+    <param name="precision_radius" value="$(arg precision_radius)"/>
+    <!-- Bedside 3-axis PID: front range + selected side range + map yaw. -->
+    <param name="precision_settle_time" value="0.50"/>
+    <param name="distance_topic" value="/lidar_distances"/>
+    <param name="distance_timeout" value="0.30"/>
+    <param name="front_target_distance" value="0.30"/>
+    <param name="side_target_distance" value="0.25"/>
+    <param name="front_tolerance" value="0.03"/>
+    <param name="side_tolerance" value="0.03"/>
+    <param name="yaw_tolerance_deg" value="3.0"/>
+    <param name="kp_front" value="0.80"/>
+    <param name="kp_side" value="0.80"/>
+    <param name="kp_yaw" value="1.20"/>
+    <param name="max_front_speed" value="0.12"/>
+    <param name="max_side_speed" value="0.12"/>
+    <param name="max_yaw_speed" value="0.18"/>
+    <param name="max_docking_range" value="1.20"/>
+    <!-- Existing pid_tracking route uses point2/bed1 left, point3/bed3 right. -->
+    <rosparam param="bed_sides">{bed1: left, bed3: right}</rosparam>
+    <param name="goal_match_tolerance" value="0.20"/>
+    <param name="global_frame" value="map"/>
+    <param name="base_frame" value="base_footprint"/>
+    <param name="cmd_timeout" value="0.25"/>
+    <param name="control_frequency" value="30.0"/>
+  </node>
+</launch>

@@ -1,0 +1,39 @@
+<!-- NavfnRuckig医疗机器人路径规划器启动文件 -->
+<!-- 参考test_navi_simple_meca_car_pid.launch的架构设计 -->
+<launch>
+
+  <!-- 保留RViz可视化 -->
+  <!-- <node pkg="rviz" type="rviz" name="rviz" args="-d $(find auto_nav)/config/rviz/navfn_ruckig_demo.rviz"/> -->
+
+  <!-- 参考原架构：改为false，因为是实际机器人运行，不是仿真 -->
+  <param name="/use_sim_time" value="false"/>
+  
+  <!-- move_base节点：使用NavfnROS全局规划器 -->
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <!-- 使用医疗机器人的配置文件 -->
+    <rosparam file="$(find auto_nav)/config/point_pid_params/test_medical_params/test_costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find auto_nav)/config/point_pid_params/test_medical_params/test_costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find auto_nav)/config/point_pid_params/test_medical_params/test_local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find auto_nav)/config/point_pid_params/test_medical_params/test_global_costmap_params.yaml" command="load" />
+    
+    <!-- 使用NavfnROS作为全局规划器 -->
+    <param name="base_global_planner" value="navfn/NavfnROS" />
+    <param name="planner_frequency" value="3.0" />
+    <param name="planner_patience" value="5.0" />
+    <param name="use_dijkstra" value="false" />
+    
+    <!-- 禁用局部规划器，使用我们的ruckig局部规划器 -->
+    <!-- <param name="base_local_planner" value="base_local_planner/TrajectoryPlannerROS" />
+    <param name="controller_frequency" value="0.0" />
+    <param name="controller_patience" value="15.0" /> -->
+
+    <param name="clearing_rotation_allowed" value="false" />
+    
+    <!-- 重要修改：将move_base的cmd_vel输出重映射，避免与NavfnRuckig控制器冲突 -->
+    <remap from="/cmd_vel" to="/move_base_cmd_vel" />
+  </node>
+
+  <!-- NavfnRuckig路径规划器节点 -->
+  <include file="$(find auto_nav)/launch/navfn_ruckig_planner.launch"/>
+
+</launch>

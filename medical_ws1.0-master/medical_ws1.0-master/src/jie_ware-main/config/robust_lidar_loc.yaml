@@ -1,0 +1,33 @@
+# 鲁棒激光雷达定位算法配置
+
+# 坐标系
+map_frame: "map"
+odom_frame: "odom"  
+base_frame: "base_footprint"
+laser_frame: "laser"
+
+# 鲁棒性参数
+outlier_threshold: 0.5      # 异常点阈值 (米)
+min_inlier_ratio: 0.6       # 最小内点比例 (0.0-1.0)
+consistency_window: 5       # 一致性检查窗口
+max_position_jump: 0.8      # 最大位置跳变 (米)
+max_angle_jump: 0.4         # 最大角度跳变 (弧度)
+
+# 匹配参数（针对过滤数据优化）
+search_range: 0.8           # 增大位姿搜索范围补偿数据减少
+search_steps: 8             # 增加搜索步数
+position_step: 0.08         # 减小位置搜索步长提高精度
+angle_step: 0.04            # 减小角度搜索步长提高精度
+
+# 质量控制（针对过滤数据调整）
+min_scan_points: 35         # 降低最少激光点数（考虑过滤）
+map_consistency_radius: 3   # 增大地图一致性检查半径
+confidence_decay: 0.98      # 减慢置信度衰减
+
+# 发布频率（降低减少抖动）
+pose_publish_rate: 10.0     # 降低位姿发布频率
+tf_publish_rate: 30.0       # 降低TF发布频率
+
+# 调试选项
+debug_mode: false
+verbose_logging: false

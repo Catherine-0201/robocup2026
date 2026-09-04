@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- 加载配置参数 -->
+    <rosparam file="$(find jie_ware)/config/lidar_center_filter.yaml" command="load" ns="lidar_center_filter_node"/>
+    
+    <!-- 雷达中心过滤节点 -->
+    <node name="lidar_center_filter_node" 
+          pkg="jie_ware" 
+          type="lidar_center_filter.py" 
+          output="screen">
+    </node>
+    
+    <!-- 可选：启动rviz查看过滤效果 -->
+    <!-- 
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find jie_ware)/rviz/config.rviz" />
+    -->
+</launch>

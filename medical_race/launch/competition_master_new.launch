@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    连续四段B样条导航总控。
+
+    坐标来源：先用 get_point.launch 查看现场 /tf_xy 坐标，再人工写入
+    competition_waypoints.yaml。get_point.launch 不负责导航到达判断。
+
+    到达依据：只订阅 /target_done，不使用 /unified_pose 或距离阈值。
+    jie_ware定位、move_base和B样条节点需要提前在其他终端启动。
+  -->
+
+  <arg name="waypoints_file"
+       default="$(find medical_race)/config/competition_waypoints.yaml" />
+
+  <node pkg="medical_race"
+        type="medical_competition_master_new.py"
+        name="medical_competition_master_new"
+        output="screen">
+
+    <rosparam command="load" file="$(arg waypoints_file)" />
+
+    <param name="frame_id" value="map" />
+    <param name="move_base_action" value="/move_base" />
+    <param name="target_done_topic" value="/target_done" />
+  </node>
+</launch>
+

@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="wall_direction" default="1"/>
+
+  <!--
+    AMCL-compatible version of the legacy get_point screen.
+    AMCL must already be running and publishing map -> base_footprint.
+    This launch deliberately does not start any old lidar localization node.
+  -->
+  <node pkg="medical_race" type="amcl_get_point_bridge.py"
+        name="amcl_get_point_bridge" output="screen">
+    <param name="map_frame" value="map"/>
+    <param name="base_frame" value="base_footprint"/>
+    <param name="rate" value="10.0"/>
+  </node>
+
+  <node pkg="robcup" name="LidarLine" type="GetDistanceByLidarLine.py"/>
+  <!-- Publish the KT-board/wall normal angle on /lidar_yaw for the UI. -->
+  <node pkg="robcup" name="wall_yaw" type="GetYawByLidarLine.py" output="screen">
+    <param name="wall_direction" value="$(arg wall_direction)"/>
+  </node>
+  <node pkg="robcup" name="lidar_distance" type="DisplayScreen(1).py"/>
+</launch>

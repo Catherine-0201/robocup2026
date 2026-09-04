@@ -1,0 +1,26 @@
+<launch>
+  <!--
+    最小化三目标导航总控。
+    jie_ware定位和B样条导航节点需要在其他终端提前启动。
+  -->
+  <node pkg="medical_race"
+        type="medical_competition_master_new.py"
+        name="medical_competition_master_new"
+        output="screen">
+
+    <!-- 将现有目标点配置加载到本节点的私有参数 ~waypoints。 -->
+    <rosparam command="load"
+              file="$(find medical_race)/config/competition_waypoints.yaml" />
+
+    <!-- jie_ware定位和move_base接口。 -->
+    <param name="frame_id" value="map" />
+    <param name="pose_topic" value="/unified_pose" />
+    <param name="move_base_action" value="/move_base" />
+
+    <!-- 当前位置与目标点距离不超过0.20m时判定到达。 -->
+    <param name="arrival_tolerance" value="0.20" />
+
+    <!-- 严格按以下顺序执行三次导航。 -->
+    <rosparam param="route">[nurse, bed1, bed3]</rosparam>
+  </node>
+</launch>

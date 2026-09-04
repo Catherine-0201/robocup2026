@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    AMCL interface for the final guarded B-spline controller.
+    Start jie_ware/amcl_robust_test.launch separately.  This launch never
+    starts robcup/amcl_pub or any other map -> odom publisher.
+  -->
+  <arg name="cmd_vel_topic" default="/cmd_vel"/>
+  <param name="/use_sim_time" value="false"/>
+
+  <node pkg="move_base" type="move_base" name="move_base"
+        respawn="false" output="screen">
+    <rosparam file="$(find auto_nav)/config/guard_amcl_costmap_common.yaml"
+              command="load" ns="global_costmap"/>
+    <rosparam file="$(find auto_nav)/config/guard_amcl_costmap_common.yaml"
+              command="load" ns="local_costmap"/>
+    <rosparam file="$(find auto_nav)/config/guard_amcl_local_costmap.yaml"
+              command="load"/>
+    <rosparam file="$(find auto_nav)/config/guard_amcl_global_costmap.yaml"
+              command="load"/>
+    <rosparam file="$(find auto_nav)/config/point_pid_params/test_medical_params/test_teb_local_planner_params.yaml"
+              command="load"/>
+
+    <param name="base_global_planner" value="global_planner/GlobalPlanner"/>
+    <!-- The guarded follower resets its trajectory clock on a new global plan.
+         Keep replanning at 1 Hz so unchanged scan updates do not repeatedly
+         restart the acceleration profile and make the chassis jerk. -->
+    <param name="planner_frequency" value="1.0"/>
+    <param name="planner_patience" value="5.0"/>
+    <param name="use_dijkstra" value="false"/>
+    <param name="clearing_rotation_allowed" value="false"/>
+    <!-- Only the guarded B-spline controller may command the chassis. -->
+    <remap from="/cmd_vel" to="/move_base_cmd_vel"/>
+  </node>
+
+  <node pkg="auto_nav" type="test_Bspline_guard_amcl"
+        name="bspline_position_guard_amcl" respawn="false" output="screen">
+    <param name="a_max" value="0.2"/>
+    <param name="d_max" value="0.2"/>
+    <param name="a_lat_max" value="0.1"/>
+    <param name="max_linear_speed" value="0.5"/>
+    <param name="max_angular_speed" value="0.2"/>
+    <param name="lookahead_idx" value="3"/>
+    <param name="goal_dist_tolerance" value="0.15"/>
+    <param name="path_goal_match_tolerance" value="0.15"/>
+    <param name="yaw_pid" value="0.6"/>
+    <param name="cmd_vel_topic" value="$(arg cmd_vel_topic)"/>
+  </node>
+</launch>

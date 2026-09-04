@@ -1,0 +1,30 @@
+# Costmap sensor configuration for AMCL + guarded B-spline navigation.
+# AMCL may beam-skip unexpected objects internally, while the costmaps must
+# keep the raw scan so people and competition boxes remain obstacles.
+
+robot_radius: 0.20
+transform_tolerance: 0.50
+
+obstacle_layer:
+  enabled: true
+  obstacle_range: 2.50
+  raytrace_range: 3.00
+  track_unknown_space: false
+  combination_method: 1
+  observation_sources: laser_scan_sensor
+  laser_scan_sensor:
+    data_type: LaserScan
+    topic: /scan
+    marking: true
+    clearing: true
+    inf_is_valid: false
+
+inflation_layer:
+  enabled: true
+  cost_scaling_factor: 6.0
+  inflation_radius: 0.30
+
+static_layer:
+  enabled: true
+  map_topic: /map
+  subscribe_to_updates: true

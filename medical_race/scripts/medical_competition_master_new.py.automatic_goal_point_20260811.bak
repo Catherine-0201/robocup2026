@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""基于 /target_done 的四段 B 样条导航总控。
+
+执行顺序：家中出发 -> 护士台 -> 床位1 -> 床位3 -> 返回家。
+护士台、床位1、床位3到达后各停留配置中的时间（默认配置为5秒）。
+
+本节点只负责：
+1. 从 ROS 参数（由 YAML 加载）读取 goal_point 坐标列表；
+2. 依次向 move_base action 发送目标；
+3. 等待 B 样条节点发布的 /target_done 计数递增，作为唯一到达依据。
+
+本节点不使用机器人当前位置，也不通过距离判断到达。
+"""
+
+import math
+
+import actionlib
+import rospy
+from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+from std_msgs.msg import Int32
+
+
+DEFAULT_ROUTE = ["nurse", "bed1", "bed3", "home"]
+ROUTE_LABELS = {
+    "nurse": "护士台",
+    "bed1": "床位1",
+    "bed3": "床位3",
+    "home": "家/起点",
+}
+
+
+class TargetDoneCompetitionMaster:
+    """依次发送四个目标，并等待 /target_done 确认每次到达。"""
+
+    def __init__(self):
+        self.frame_id = rospy.get_param("~frame_id", "map")
+        self.move_base_action = rospy.get_param("~move_base_action", "/move_base")
+        self.target_done_topic = rospy.get_param("~target_done_topic", "/target_done")
+        self.route = list(DEFAULT_ROUTE)
+        self.waypoints = self._load_waypoints_from_goal_point()
+
+        # None 表示还没有收到 B 样条节点锁存发布的初始计数。
+        self.target_done_count = None
+        rospy.Subscriber(
+            self.target_done_topic,
+            Int32,
+            self._target_done_callback,
+            queue_size=10,
+        )
+
+        self.move_base_client = actionlib.SimpleActionClient(
+            self.move_base_action,
+            MoveBaseAction,
+        )
+
+    @staticmethod
+    def _parse_xy(point, parameter_name):
+        if not isinstance(point, (list, tuple)) or len(point) < 2:
+            raise rospy.ROSInitException(
+                "%s must be an [x, y] array" % parameter_name
+            )
+        try:
+            return float(point[0]), float(point[1])
+        except (TypeError, ValueError):
+            raise rospy.ROSInitException(
+                "%s must contain numeric x and y" % parameter_name
+            )
+
+    def _load_waypoints_from_goal_point(self):
+        """把 goal_point 的三个坐标按固定顺序转换成命名目标点。"""
+        goal_points = rospy.get_param("~goal_point", [])
+        if not isinstance(goal_points, list) or len(goal_points) != 3:
+            raise rospy.ROSInitException(
+                "~goal_point must contain exactly three [x, y] points: "
+                "nurse, bed1, bed3"
+            )
+
+        goal_yaw = rospy.get_param("~goal_yaw", [0.0, 0.0, 0.0])
+        if not isinstance(goal_yaw, list) or len(goal_yaw) != 3:
+            raise rospy.ROSInitException(
+                "~goal_yaw must contain exactly three yaw values"
+            )
+
+        home_point = rospy.get_param("~home_point", [0.0, 0.0])
+        home_yaw = float(rospy.get_param("~home_yaw", 0.0))
+        hold_seconds = float(rospy.get_param("~hold_seconds", 5.0))
+        if hold_seconds < 0.0:
+            raise rospy.ROSInitException("~hold_seconds must be >= 0")
+
+        waypoints = {}
+        for index, name in enumerate(DEFAULT_ROUTE[:3]):
+            x, y = self._parse_xy(
+                goal_points[index], "~goal_point[%d]" % index
+            )
+            try:
+                yaw = float(goal_yaw[index])
+            except (TypeError, ValueError):
+                raise rospy.ROSInitException(
+                    "~goal_yaw[%d] must be numeric" % index
+                )
+            waypoints[name] = {
+                "label": ROUTE_LABELS[name],
+                "x": x,
+                "y": y,
+                "yaw": yaw,
+                "hold_seconds": hold_seconds,
+            }
+
+        home_x, home_y = self._parse_xy(home_point, "~home_point")
+        waypoints["home"] = {
+            "label": ROUTE_LABELS["home"],
+            "x": home_x,
+            "y": home_y,
+            "yaw": home_yaw,
+            "hold_seconds": 0.0,
+        }
+        return waypoints
+
+    def _target_done_callback(self, msg):
+        new_count = int(msg.data)
+        if self.target_done_count is not None and new_count < self.target_done_count:
+            rospy.logwarn(
+                "/target_done decreased from %d to %d; B-spline node may have restarted",
+                self.target_done_count,
+                new_count,
+            )
+        self.target_done_count = new_count
+
+    def _wait_for_initial_target_done(self):
+        rospy.loginfo("Waiting for initial counter from %s", self.target_done_topic)
+        rate = rospy.Rate(20)
+        while not rospy.is_shutdown():
+            if self.target_done_count is not None:
+                rospy.loginfo(
+                    "Initial /target_done counter is %d", self.target_done_count
+                )
+                return True
+            rate.sleep()
+        return False
+
+    def _build_goal(self, waypoint):
+        goal = MoveBaseGoal()
+        goal.target_pose.header.frame_id = self.frame_id
+        goal.target_pose.header.stamp = rospy.Time.now()
+        goal.target_pose.pose.position.x = float(waypoint["x"])
+        goal.target_pose.pose.position.y = float(waypoint["y"])
+
+        half_yaw = float(waypoint["yaw"]) * 0.5
+        goal.target_pose.pose.orientation.z = math.sin(half_yaw)
+        goal.target_pose.pose.orientation.w = math.cos(half_yaw)
+        return goal
+
+    def _wait_for_target_done(self, expected_count, name):
+        rospy.loginfo(
+            "Waiting for %s: /target_done must change to %d",
+            name,
+            expected_count,
+        )
+        rate = rospy.Rate(20)
+        while not rospy.is_shutdown():
+            current = self.target_done_count
+            if current == expected_count:
+                return True
+            if current is not None and current > expected_count:
+                rospy.logerr(
+                    "/target_done jumped to %d while waiting for %d; "
+                    "navigation sequence is no longer synchronized",
+                    current,
+                    expected_count,
+                )
+                return False
+            rate.sleep()
+        return False
+
+    def _navigate_once(self, index, name):
+        waypoint = self.waypoints[name]
+        label = waypoint.get("label", name)
+        expected_count = self.target_done_count + 1
+
+        rospy.loginfo("=" * 64)
+        rospy.loginfo(
+            "Navigation %d/%d -> %s (x=%.3f, y=%.3f, yaw=%.3f)",
+            index,
+            len(self.route),
+            label,
+            float(waypoint["x"]),
+            float(waypoint["y"]),
+            float(waypoint["yaw"]),
+        )
+        rospy.loginfo("Expected /target_done: %d", expected_count)
+        self.move_base_client.send_goal(self._build_goal(waypoint))
+
+        if not self._wait_for_target_done(expected_count, label):
+            return False
+
+        rospy.loginfo(
+            "Arrived at %s; received /target_done=%d",
+            label,
+            expected_count,
+        )
+
+        hold_seconds = float(waypoint["hold_seconds"])
+        if hold_seconds > 0.0:
+            rospy.loginfo("Holding at %s for %.1f seconds", label, hold_seconds)
+            rospy.sleep(hold_seconds)
+            if rospy.is_shutdown():
+                return False
+            rospy.loginfo("Hold finished at %s", label)
+
+        return True
+
+    def run(self):
+        rospy.loginfo("Waiting for move_base action: %s", self.move_base_action)
+        self.move_base_client.wait_for_server()
+        rospy.loginfo("move_base is ready")
+
+        if not self._wait_for_initial_target_done():
+            return
+
+        rospy.loginfo("Route: %s", " -> ".join(self.route))
+        for index, name in enumerate(self.route, start=1):
+            if not self._navigate_once(index, name):
+                rospy.logerr("Navigation stopped before completing the route")
+                return
+
+        rospy.loginfo("Returned home; all four B-spline goals completed")
+
+
+if __name__ == "__main__":
+    rospy.init_node("medical_competition_master_new")
+    try:
+        TargetDoneCompetitionMaster().run()
+    except rospy.ROSInterruptException:
+        pass

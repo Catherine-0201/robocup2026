@@ -1,0 +1,30 @@
+# Coordinates are initial values recovered from this repository's older scripts.
+# Re-record and validate them on the real competition map before a match.
+waypoints:
+  nurse:
+    x: 1.00
+    y: 0.00
+    yaw: 0.00
+    tolerance: 0.25
+    timeout: 35.0
+  bed1:
+    x: 5.30
+    y: 2.00
+    yaw: 0.00
+    # Must not be smaller than the current adaptive PID follower's 0.25 m
+    # stopping tolerance, otherwise the follower stops but the master waits
+    # forever. This is coarse arrival only; station action must precision-dock.
+    tolerance: 0.28
+    timeout: 50.0
+  bed3:
+    x: 5.30
+    y: -1.60
+    yaw: 0.00
+    tolerance: 0.28
+    timeout: 50.0
+  home:
+    x: 0.00
+    y: 0.00
+    yaw: 0.00
+    tolerance: 0.25
+    timeout: 50.0

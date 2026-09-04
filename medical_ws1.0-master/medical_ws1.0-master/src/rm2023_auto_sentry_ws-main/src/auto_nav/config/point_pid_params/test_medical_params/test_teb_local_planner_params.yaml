@@ -1,0 +1,120 @@
+TebLocalPlannerROS:
+
+ odom_topic: /odom
+ map_frame: map
+ 
+ # Trajectory
+  
+ teb_autosize: True
+ dt_ref: 0.3
+ dt_hysteresis: 0.03
+ max_samples: 3
+ global_plan_overwrite_orientation: True
+ allow_init_with_backwards_motion: True  # 医疗机器人禁止后退
+ max_global_plan_lookahead_dist: 1.5
+ global_plan_viapoint_sep: 0.25
+ global_plan_prune_distance: 1
+ exact_arc_length: False
+ feasibility_check_no_poses: 2
+ publish_feedback: True
+    
+ # Robot - 适应医疗场景的速度限制
+ 
+ max_vel_x: 1.0          # 降低最大前进速度，提高安全性
+ max_vel_x_backwards: 0.2  # 大幅降低后退速度
+ max_vel_y: 0.8          # 降低横向速度
+ max_vel_theta: 2.0      # 降低角速度，提高稳定性
+ acc_lim_y: 0.5          # 降低横向加速度
+ acc_lim_x: 0.5          # 降低前进加速度
+ acc_lim_theta: 0.5      # 降低角加速度
+ holonomic_robot: True
+ 
+ # ********************** Carlike robot parameters ********************
+ min_turning_radius: 0.0
+ wheelbase: 0.0
+ cmd_angle_instead_rotvel: False
+ # ********************************************************************
+
+ footprint_model: # 适应医疗机器人尺寸
+   type: "circular"
+   radius: 0.25  # 增大机器人半径，提高安全性
+
+ # GoalTolerance - 适应医疗场景的精度要求
+
+ xy_goal_tolerance: 0.2   # 提高位置精度
+ yaw_goal_tolerance: 0.3  # 提高角度精度
+ free_goal_vel: False
+ complete_global_plan: True
+    
+ # Obstacles - 增强障碍物检测
+    
+ min_obstacle_dist: 0.3   # 增大与障碍物的最小距离
+ inflation_dist: 0.4      # 增大障碍物缓冲区
+ include_costmap_obstacles: True
+ costmap_obstacles_behind_robot_dist: 1.0
+ obstacle_poses_affected: 20
+
+ dynamic_obstacle_inflation_dist: 0.5
+ include_dynamic_obstacles: True 
+
+ costmap_converter_plugin: ""
+ costmap_converter_spin_thread: True
+ costmap_converter_rate: 8
+
+ # Optimization - 调整优化参数适应医疗环境
+    
+ no_inner_iterations: 5
+ no_outer_iterations: 4
+ optimization_activate: True
+ optimization_verbose: False
+ penalty_epsilon: 0.1
+ obstacle_cost_exponent: 4
+ weight_max_vel_y: 15.0      # 增加横移约束权重
+ weight_max_vel_x: 15.0      # 增加前进约束权重
+ weight_max_vel_theta: 800.0 # 增加角速度约束权重
+ weight_acc_lim_x: 120       # 增加加速度约束权重
+ weight_acc_lim_theta: 1000
+ weight_kinematics_nh: 100
+ weight_kinematics_forward_drive: 250  # 增加前进驱动权重
+ weight_kinematics_turning_radius: 500
+ weight_optimaltime: 80      # 降低时间优化权重，优先安全性
+ weight_shortest_path: 0
+ weight_obstacle: 150        # 增加障碍物权重，提高安全性
+ weight_inflation: 0.3
+ weight_dynamic_obstacle: 15
+ weight_dynamic_obstacle_inflation: 0.3
+ weight_viapoint: 100        # 增加路径跟踪权重
+ weight_adapt_factor: 2
+
+ # Homotopy Class Planner - 禁用以提高稳定性
+
+ enable_homotopy_class_planning: False
+ enable_multithreading: False  # 禁用多线程，提高稳定性
+ max_number_classes: 1         # 减少轨迹类别数
+ selection_cost_hysteresis: 1.0
+ selection_prefer_initial_plan: 0.95
+ selection_obst_cost_scale: 1.0
+ selection_alternative_time_cost: False
+
+ roadmap_graph_no_samples: 10  # 减少采样数
+ roadmap_graph_area_width: 4
+ roadmap_graph_area_length_scale: 1.0
+ h_signature_prescaler: 0.5
+ h_signature_threshold: 0.1
+ obstacle_heading_threshold: 0.45
+ switching_blocking_period: 0.0
+ viapoints_all_candidates: True
+ delete_detours_backwards: True
+ max_ratio_detours_duration_best_duration: 3.0
+ visualize_hc_graph: False
+ visualize_with_time_as_z_axis_scale: False
+
+# Recovery
+ 
+ shrink_horizon_backup: True
+ shrink_horizon_min_duration: 10
+ oscillation_recovery: True
+ oscillation_v_eps: 0.05      # 降低振荡检测阈值
+ oscillation_omega_eps: 0.05
+ oscillation_recovery_min_duration: 10
+ oscillation_filter_duration: 10

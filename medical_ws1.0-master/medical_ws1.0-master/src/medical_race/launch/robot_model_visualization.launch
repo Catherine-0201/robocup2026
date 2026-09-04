@@ -1,0 +1,42 @@
+<launch>
+  <!-- Arguments参数 -->
+  <arg name="car_mode"  default="" />
+  <arg name="if_voice" default="false"/>
+  
+  <!-- 用于robot_state_publisher节点-->
+  <node pkg="tf" type="static_transform_publisher" name="base_to_link" args="0 0 0 0 0 0 base_footprint base_link 100" />
+  
+  <!--坐标变换，需要实测 -->
+
+ <!--全向轮系列 -->
+ <!-- car_mode and tf  mini_omni-->
+  <!-- car_mode and tf  senior_omni-->
+  <group if="$(eval car_mode == 'senior_omni')">
+      <node pkg="tf" type="static_transform_publisher" name="base_to_laser" args="0.00 0.00 0.35 0 0 0  base_footprint laser 100" /><!--velodyne-->
+      <node pkg="tf" type="static_transform_publisher" name="base_to_camera" args="0.15 0.00 0.20 3.141592653589793 0 0   base_footprint camera_link 100" />
+      <node pkg="tf" type="static_transform_publisher" name="base_to_gyro" args="0.00 0.00 0.00 0 0 0 base_footprint imu_link 100" /><!--传感器方向-->
+      <!-- <node pkg="medical_race" type="tf_base2imu.py" name="tf_base2imu"/> -->
+      <!-- <node pkg="tf" type="static_transform_publisher" name="combined_to_odom" args="0 0 0 0 0 0 odom_conbined odom 100" /> -->
+       <!-- <node pkg="tf" type="static_transform_publisher" name="base_to_odom" args="0 0 0 0 0 0 odom base_footprint 100" /> -->
+  </group>
+
+  <!-- URDF 标准化机器人描述格式 -->
+
+  <!--全向轮系列 -->
+  <group if="$(eval car_mode == 'senior_omni')">
+      <param name = "robot_description" textfile = "$(find turn_on_wheeltec_robot)/urdf/senior_omni_robot.urdf"/> 
+  </group>
+  
+  <!-- 读取urdf信息(robot_description) 发布话题：/joint_states-->
+ <!--  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" /> -->
+  <!-- 订阅话题：/joint_states，发布小车TF信息-->
+ <!--  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" /> -->
+
+   <!-- 读取urdf信息(robot_description) 发布话题：/joint_states-->
+  <node unless="$(eval (car_mode=='mini_mec_moveit_six' or car_mode=='mini_4wd_moveit_six') and if_voice==true)" name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+  <!-- 订阅话题：/joint_states，发布小车TF信息-->
+  <node unless="$(eval (car_mode=='mini_mec_moveit_six' or car_mode=='mini_4wd_moveit_six') and if_voice==true)" name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+ </launch>
+
+

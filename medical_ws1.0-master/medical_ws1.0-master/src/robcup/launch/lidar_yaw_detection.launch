@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- 墙壁方向选择参数 (1=前面, 2=左面, 3=右面) -->
+    <arg name="wall_direction" default="1" />
+    
+    <!-- 角度范围参数 -->
+    <arg name="front_angle_range" default="15" />  <!-- 前面墙壁角度范围 ±60° -->
+    <arg name="left_angle_min" default="30" />     <!-- 左面墙壁最小角度 30° -->
+    <arg name="left_angle_max" default="90" />    <!-- 左面墙壁最大角度 150° -->
+    <arg name="right_angle_min" default="-90" />  <!-- 右面墙壁最小角度 -150° -->
+    <arg name="right_angle_max" default="-30" />   <!-- 右面墙壁最大角度 -30° -->
+    
+    <!-- 距离范围参数 -->
+    <arg name="min_distance" default="1.7" />      <!-- 最小距离 0.3m -->
+    <arg name="max_distance" default="2.5" />      <!-- 最大距离 0.7m -->
+    
+    <!-- 最小点数阈值 -->
+    <arg name="min_points" default="10" />         <!-- 最少点数阈值 -->
+    
+    <!-- 启动激光雷达yaw检测节点 -->
+    <node name="lidar_yaw_detector" pkg="robcup" type="GetYawByLidarLine.py" output="screen">
+        <!-- 墙壁方向参数 -->
+        <param name="wall_direction" value="$(arg wall_direction)" />
+        
+        <!-- 角度范围参数 -->
+        <param name="front_angle_range" value="$(arg front_angle_range)" />
+        <param name="left_angle_min" value="$(arg left_angle_min)" />
+        <param name="left_angle_max" value="$(arg left_angle_max)" />
+        <param name="right_angle_min" value="$(arg right_angle_min)" />
+        <param name="right_angle_max" value="$(arg right_angle_max)" />
+        
+        <!-- 距离范围参数 -->
+        <param name="min_distance" value="$(arg min_distance)" />
+        <param name="max_distance" value="$(arg max_distance)" />
+        
+        <!-- 最小点数阈值 -->
+        <param name="min_points" value="$(arg min_points)" />
+    </node>
+    
+   
+</launch>

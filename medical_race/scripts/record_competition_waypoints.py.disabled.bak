@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""交互式记录比赛导航点，并自动写入 competition_waypoints.yaml。
+
+不修改 get_point.launch。默认订阅 /tf_xy，与 get_point 的坐标显示保持一致。
+记录顺序固定：家/起点、护士台、床位1、床位3。
+"""
+
+import os
+import shutil
+import threading
+
+import rospy
+import yaml
+from geometry_msgs.msg import Point, PoseWithCovarianceStamped
+
+
+CAPTURE_SEQUENCE = [
+    ("home", "家/起点"),
+    ("nurse", "护士台"),
+    ("bed1", "床位1"),
+    ("bed3", "床位3"),
+]
+
+
+class CompetitionWaypointRecorder:
+    def __init__(self):
+        self.source = rospy.get_param("~source", "tf_xy")
+        self.tf_xy_topic = rospy.get_param("~tf_xy_topic", "/tf_xy")
+        self.unified_pose_topic = rospy.get_param(
+            "~unified_pose_topic", "/unified_pose"
+        )
+        self.output_file = rospy.get_param("~output_file")
+        self.hold_seconds = float(rospy.get_param("~hold_seconds", 5.0))
+
+        if self.source not in ("tf_xy", "unified_pose"):
+            raise rospy.ROSInitException(
+                "~source must be tf_xy or unified_pose"
+            )
+        if not self.output_file:
+            raise rospy.ROSInitException("~output_file is required")
+        if self.hold_seconds < 0.0:
+            raise rospy.ROSInitException("~hold_seconds must be >= 0")
+
+        self._lock = threading.Lock()
+        self._latest_xy = None
+
+        if self.source == "tf_xy":
+            rospy.Subscriber(
+                self.tf_xy_topic,
+                Point,
+                self._tf_xy_callback,
+                queue_size=1,
+            )
+            self._source_description = self.tf_xy_topic
+        else:
+            rospy.Subscriber(
+                self.unified_pose_topic,
+                PoseWithCovarianceStamped,
+                self._unified_pose_callback,
+                queue_size=1,
+            )
+            self._source_description = self.unified_pose_topic
+
+    def _tf_xy_callback(self, msg):
+        with self._lock:
+            self._latest_xy = (float(msg.x), float(msg.y))
+
+    def _unified_pose_callback(self, msg):
+        position = msg.pose.pose.position
+        with self._lock:
+            self._latest_xy = (float(position.x), float(position.y))
+
+    def _wait_for_first_coordinate(self):
+        rospy.loginfo("Waiting for coordinates from %s", self._source_description)
+        rate = rospy.Rate(20)
+        while not rospy.is_shutdown():
+            with self._lock:
+                if self._latest_xy is not None:
+                    rospy.loginfo(
+                        "Coordinate source ready: x=%.3f, y=%.3f",
+                        self._latest_xy[0],
+                        self._latest_xy[1],
+                    )
+                    return True
+            rate.sleep()
+        return False
+
+    def _capture_current_coordinate(self, name, label):
+        input(
+            "\n请将机器人停在%s，确认坐标稳定后按 Enter 记录（Ctrl+C 取消）："
+            % label
+        )
+        with self._lock:
+            if self._latest_xy is None:
+                raise rospy.ROSInitException("coordinate source disappeared")
+            x, y = self._latest_xy
+        rospy.loginfo("Recorded %s: x=%.3f, y=%.3f", name, x, y)
+        return x, y
+
+    def _write_yaml(self, captured):
+        data = {
+            "goal_point": [
+                [captured["nurse"][0], captured["nurse"][1]],
+                [captured["bed1"][0], captured["bed1"][1]],
+                [captured["bed3"][0], captured["bed3"][1]],
+            ],
+            "goal_yaw": [0.0, 0.0, 0.0],
+            "home_point": [captured["home"][0], captured["home"][1]],
+            "home_yaw": 0.0,
+            "hold_seconds": self.hold_seconds,
+        }
+
+        output_dir = os.path.dirname(self.output_file)
+        if output_dir and not os.path.isdir(output_dir):
+            raise rospy.ROSInitException("output directory does not exist: %s" % output_dir)
+
+        backup_file = self.output_file + ".before_record.bak"
+        if os.path.isfile(self.output_file):
+            shutil.copy2(self.output_file, backup_file)
+            rospy.loginfo("Previous YAML backed up to %s", backup_file)
+
+        temporary_file = self.output_file + ".tmp"
+        with open(temporary_file, "w", encoding="utf-8") as yaml_file:
+            yaml.safe_dump(
+                data,
+                yaml_file,
+                allow_unicode=True,
+                default_flow_style=False,
+                sort_keys=False,
+            )
+        os.replace(temporary_file, self.output_file)
+        rospy.loginfo("Waypoint YAML written to %s", self.output_file)
+
+    def run(self):
+        if not self._wait_for_first_coordinate():
+            return
+
+        captured = {}
+        for name, label in CAPTURE_SEQUENCE:
+            if rospy.is_shutdown():
+                return
+            captured[name] = self._capture_current_coordinate(name, label)
+
+        self._write_yaml(captured)
+        rospy.loginfo("All waypoints recorded. Stop this recorder, then start the master controller.")
+
+
+if __name__ == "__main__":
+    rospy.init_node("competition_waypoint_recorder")
+    try:
+        CompetitionWaypointRecorder().run()
+    except (rospy.ROSInterruptException, KeyboardInterrupt):
+        pass
+

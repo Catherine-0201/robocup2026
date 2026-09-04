@@ -1,0 +1,26 @@
+# Experimental node only; no original lidar_loc parameter is changed.
+base_frame: base_footprint
+odom_frame: odom
+laser_frame: laser
+laser_topic: scan
+
+# A hit close to a mapped obstacle is trusted.  The transition band is kept
+# deliberately small, so map rasterisation does not cause binary flicker.
+static_distance_m: 0.18
+dynamic_distance_m: 0.25
+uncertain_weight: 0.25
+
+# Ray casting compares the measured return with the wall range predicted by
+# the static map.  A return at least 0.12 m before that wall is foreground and
+# receives zero localization weight, even when the person is close to a wall.
+raycast_foreground_margin_m: 0.12
+raycast_wall_tolerance_m: 0.20
+raycast_step_m: 0.025
+
+# Reject a whole update when a nearby person hides too much static structure.
+min_valid_points: 50
+min_static_inlier_ratio: 0.35
+min_score_per_point: 0.18
+
+# Set true only if the installed laser publishes its lateral axis reversed.
+invert_laser_y: false

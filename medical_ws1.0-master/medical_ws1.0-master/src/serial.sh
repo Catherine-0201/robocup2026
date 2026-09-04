@@ -1,0 +1,6 @@
+echo  'KERNEL=="ttyUSB*", ATTRS{idVendor}=="2639", ATTRS{idProduct}=="0013",ATTRS{serial}=="03782542", MODE:="0777", GROUP:="dialout", SYMLINK+="xsens_mti300"' >/etc/udev/rules.d/xsens_mti300.rules
+echo  'KERNEL=="ttyACM*", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="55d4",ATTRS{serial}=="0002", MODE:="0777", GROUP:="dialout", SYMLINK+="wheeltec_controller"' >/etc/udev/rules.d/wheeltec_controller.rules
+echo  'KERNEL=="ttyUSB*", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60",ATTRS{serial}=="0001", MODE:="0777", GROUP:="dialout", SYMLINK+="rplidara3"' >/etc/udev/rules.d/rplidara3.rules
+echo  'KERNEL=="ttyUSB*", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60",ATTRS{serial}=="0002", MODE:="0777", GROUP:="dialout", SYMLINK+="hfi_b6"' >/etc/udev/rules.d/hfi_b6.rules
+echo  'KERNEL=="ttyACM*", ATTRS{idVendor}=="6666", ATTRS{idProduct}=="7777",ATTRS{serial}=="202730041341", MODE:="0777", GROUP:="dialout", SYMLINK+="gm65"' >/etc/udev/rules.d/gm65.rules
+echo  'KERNEL=="ttyUSB*", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", MODE:="0777", GROUP:="dialout", SYMLINK+="arm"' >/etc/udev/rules.d/arm.rules

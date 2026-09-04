@@ -1,0 +1,139 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+  - Class: rviz/Selection
+    Name: Selection
+  - Class: rviz/Tool Properties
+    Name: Tool Properties
+  - Class: rviz/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz/Grid
+      Enabled: true
+      Name: Grid
+      Cell Size: 1
+      Plane: XY
+      Plane Cell Count: 10
+      Color: 120; 120; 120
+    - Class: rviz/Map
+      Enabled: true
+      Name: Static Map
+      Topic: /map
+      Alpha: 0.70
+      Color Scheme: map
+    - Class: rviz/Map
+      Enabled: false
+      Name: Global Costmap
+      Topic: /move_base/global_costmap/costmap
+      Alpha: 0.55
+      Color Scheme: costmap
+    - Class: rviz/Map
+      Enabled: true
+      Name: Local Costmap
+      Topic: /move_base/local_costmap/costmap
+      Alpha: 0.65
+      Color Scheme: costmap
+    - Class: rviz/LaserScan
+      Enabled: true
+      Name: Live LaserScan
+      Topic: /scan
+      Style: Flat Squares
+      Size (m): 0.04
+      Size (Pixels): 3
+      Color Transformer: FlatColor
+      Color: 255; 0; 0
+      Alpha: 1
+      Decay Time: 0
+      Queue Size: 10
+      Use Fixed Frame: true
+    - Class: rviz/RobotModel
+      Enabled: true
+      Name: Robot Model
+      Robot Description: robot_description
+      TF Prefix: ""
+      Visual Enabled: true
+      Collision Enabled: false
+    - Class: rviz/PoseArray
+      Enabled: true
+      Name: AMCL Particle Cloud
+      Topic: /particlecloud
+      Color: 0; 170; 255
+      Alpha: 0.60
+      Arrow Length: 0.25
+      Arrow Radius: 0.015
+      Head Length: 0.08
+      Head Radius: 0.035
+      Shaft Length: 0.17
+      Shaft Radius: 0.012
+    - Class: rviz/PoseWithCovariance
+      Enabled: true
+      Name: AMCL Pose and Covariance
+      Topic: /amcl_pose
+      Shape: Arrow
+      Color: 255; 255; 0
+      Alpha: 1
+      Axes Length: 0.35
+      Axes Radius: 0.03
+    - Class: rviz/Path
+      Enabled: true
+      Name: Global Planner Path
+      Topic: /move_base/GlobalPlanner/plan
+      Color: 0; 255; 0
+      Alpha: 1
+      Line Style: Lines
+      Line Width: 0.04
+      Buffer Length: 1
+      Pose Style: None
+    - Class: rviz/Path
+      Enabled: true
+      Name: Guard B-spline Trajectory
+      Topic: /bspline_trajectory
+      Color: 255; 0; 255
+      Alpha: 1
+      Line Style: Lines
+      Line Width: 0.05
+      Buffer Length: 1
+      Pose Style: None
+    - Class: rviz/Path
+      Enabled: false
+      Name: move_base Local Planner Path (diagnostic)
+      Topic: /move_base/TrajectoryPlannerROS/local_plan
+      Color: 0; 170; 255
+      Alpha: 1
+      Line Style: Lines
+      Line Width: 0.04
+      Buffer Length: 1
+      Pose Style: None
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Default Light: true
+    Fixed Frame: map
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+    - Class: rviz/FocusCamera
+    - Class: rviz/Measure
+    - Class: rviz/SetInitialPose
+      Topic: /initialpose
+      X std deviation: 0.50
+      Y std deviation: 0.50
+      Theta std deviation: 0.262
+    - Class: rviz/SetGoal
+      Topic: /move_base_simple/goal
+    - Class: rviz/PublishPoint
+      Single click: true
+      Topic: /clicked_point
+  Views:
+    Current:
+      Class: rviz/TopDownOrtho
+      Name: Current View
+      Scale: 15
+Window Geometry:
+  Width: 1280
+  Height: 800

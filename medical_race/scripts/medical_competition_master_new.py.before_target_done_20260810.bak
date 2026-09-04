@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""最小化三目标导航总控。
+
+职责只有两个：
+1. 订阅 jie_ware 发布的 /unified_pose，获得机器人当前位置；
+2. 依次向 /move_base 发送三个目标，让已单独启动的 B 样条节点跟踪全局路径。
+
+本脚本不处理扫码、机械臂、比赛计时、急停、重试、PID服务或 /target_done。
+"""
+
+import math
+
+import actionlib
+import rospy
+from geometry_msgs.msg import PoseWithCovarianceStamped
+from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+
+
+DEFAULT_ROUTE = ["nurse", "bed1", "bed3"]
+ARRIVAL_HOLD_SECONDS = 5.0
+
+
+class ThreeGoalBsplineMaster:
+    """根据定位距离，依次下发三个 move_base 目标。"""
+
+    def __init__(self):
+        self.frame_id = rospy.get_param("~frame_id", "map")
+        self.pose_topic = rospy.get_param("~pose_topic", "/unified_pose")
+        self.move_base_action = rospy.get_param("~move_base_action", "/move_base")
+        self.arrival_tolerance = float(rospy.get_param("~arrival_tolerance", 0.20))
+
+        # competition_waypoints.yaml 由 launch 加载到本节点的私有参数空间。
+        self.waypoints = rospy.get_param("~waypoints", {})
+        self.route = rospy.get_param("~route", DEFAULT_ROUTE)
+        self._validate_config()
+
+        self.current_x = None
+        self.current_y = None
+
+        rospy.Subscriber(
+            self.pose_topic,
+            PoseWithCovarianceStamped,
+            self._pose_callback,
+            queue_size=1,
+        )
+        self.move_base_client = actionlib.SimpleActionClient(
+            self.move_base_action,
+            MoveBaseAction,
+        )
+
+    def _validate_config(self):
+        """只接受恰好三个有效目标，避免流程含义不明确。"""
+        if len(self.route) != 3:
+            raise rospy.ROSInitException("~route must contain exactly three waypoint names")
+
+        for name in self.route:
+            if name not in self.waypoints:
+                raise rospy.ROSInitException("missing waypoint: %s" % name)
+            for key in ("x", "y", "yaw"):
+                if key not in self.waypoints[name]:
+                    raise rospy.ROSInitException("waypoint %s missing %s" % (name, key))
+
+    def _pose_callback(self, msg):
+        """保存 jie_ware 统一定位输出的当前位置。"""
+        self.current_x = msg.pose.pose.position.x
+        self.current_y = msg.pose.pose.position.y
+
+    def _wait_for_first_pose(self):
+        """收到第一帧定位前不发送导航目标。"""
+        rospy.loginfo("Waiting for position from %s", self.pose_topic)
+        rate = rospy.Rate(10)
+        while not rospy.is_shutdown():
+            if self.current_x is not None and self.current_y is not None:
+                rospy.loginfo(
+                    "Position ready: x=%.3f, y=%.3f",
+                    self.current_x,
+                    self.current_y,
+                )
+                return True
+            rate.sleep()
+        return False
+
+    def _build_goal(self, waypoint):
+        """把 x、y、yaw 配置转换成 move_base action 目标。"""
+        goal = MoveBaseGoal()
+        goal.target_pose.header.frame_id = self.frame_id
+        goal.target_pose.header.stamp = rospy.Time.now()
+        goal.target_pose.pose.position.x = float(waypoint["x"])
+        goal.target_pose.pose.position.y = float(waypoint["y"])
+
+        half_yaw = float(waypoint["yaw"]) * 0.5
+        goal.target_pose.pose.orientation.z = math.sin(half_yaw)
+        goal.target_pose.pose.orientation.w = math.cos(half_yaw)
+        return goal
+
+    def _distance_to(self, waypoint):
+        """使用 jie_ware 定位计算机器人到目标点的平面距离。"""
+        if self.current_x is None or self.current_y is None:
+            return float("inf")
+        return math.hypot(
+            self.current_x - float(waypoint["x"]),
+            self.current_y - float(waypoint["y"]),
+        )
+
+    def _navigate_once(self, index, name):
+        """发送一个目标，并等待定位距离进入到点范围。"""
+        waypoint = self.waypoints[name]
+        goal = self._build_goal(waypoint)
+
+        rospy.loginfo(
+            "Navigation %d/3 -> %s (x=%.3f, y=%.3f, yaw=%.3f)",
+            index,
+            name,
+            float(waypoint["x"]),
+            float(waypoint["y"]),
+            float(waypoint["yaw"]),
+        )
+        self.move_base_client.send_goal(goal)
+
+        rate = rospy.Rate(10)
+        while not rospy.is_shutdown():
+            distance = self._distance_to(waypoint)
+            if distance <= self.arrival_tolerance:
+                rospy.loginfo("=" * 60)
+                rospy.loginfo(
+                    "已到达目标点 %d/3：%s（当前距离 %.3f m）",
+                    index,
+                    name,
+                    distance,
+                )
+                rospy.loginfo(
+                    "将在目标点 %s 停留 %.1f 秒",
+                    name,
+                    ARRIVAL_HOLD_SECONDS,
+                )
+                rospy.sleep(ARRIVAL_HOLD_SECONDS)
+                rospy.loginfo("目标点 %s 停留结束，准备执行下一步", name)
+                rospy.loginfo("=" * 60)
+                return True
+            rate.sleep()
+        return False
+
+    def run(self):
+        """等待外部节点就绪，然后严格按顺序执行三次导航。"""
+        rospy.loginfo("Waiting for move_base action: %s", self.move_base_action)
+        self.move_base_client.wait_for_server()
+        rospy.loginfo("move_base is ready")
+
+        if not self._wait_for_first_pose():
+            return
+
+        rospy.loginfo("Three-goal route: %s", " -> ".join(self.route))
+        for index, name in enumerate(self.route, start=1):
+            if not self._navigate_once(index, name):
+                return
+
+        rospy.loginfo("All three B-spline navigation goals completed")
+
+
+if __name__ == "__main__":
+    rospy.init_node("medical_competition_master_new")
+    ThreeGoalBsplineMaster().run()

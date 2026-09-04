@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    单床扫码测试总控：护士台 -> 停2秒扫码 -> 目标床位 -> 停5秒 -> 结束。
+    11/13选择床位1，31/33选择床位3。
+
+    gm65.py、定位、move_base 和 B 样条控制器必须提前单独启动。
+    不要同时启动其他比赛总控或 task_new.py。
+  -->
+  <arg name="waypoints_file"
+       default="$(find medical_race)/config/competition_waypoints.yaml"/>
+  <arg name="nurse_hold_seconds" default="2.0"/>
+
+  <node pkg="medical_race"
+        type="medical_competition_master_qr_single_bed.py"
+        name="medical_competition_master_qr_single_bed"
+        output="screen">
+    <rosparam command="load" file="$(arg waypoints_file)"/>
+    <param name="frame_id" value="map"/>
+    <param name="move_base_action" value="/move_base"/>
+    <param name="target_done_topic" value="/target_done"/>
+    <param name="scan_topic" value="/gm65_data"/>
+    <param name="nurse_hold_seconds" value="$(arg nurse_hold_seconds)"/>
+  </node>
+</launch>

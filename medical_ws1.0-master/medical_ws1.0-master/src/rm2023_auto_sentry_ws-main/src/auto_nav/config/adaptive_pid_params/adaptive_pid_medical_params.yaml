@@ -1,0 +1,40 @@
+# 阶段2：速度自适应PID控制器参数配置文件
+# 功能：根据当前速度线性调整P值
+# 公式：P = P_min + (P_max - P_min) * (current_speed / v_max)
+
+# ==== 基础运动参数 ====
+max_x_speed: 0.8        # X方向最大速度 [m/s]
+max_y_speed: 0.8        # Y方向最大速度 [m/s]  
+set_yaw_speed: 0.2      # 角速度 [rad/s]
+
+# ==== 规划参数 ====
+plan_frequency: 30      # 控制频率 [Hz]
+goal_dist_tolerance: 0.25    # 目标距离容忍度 [m]
+prune_ahead_distance: 1.0    # 前瞻距离 [m]
+global_frame: "map"     # 全局坐标系
+
+# ==== 传统PID参数 ====
+p_value: 0.5           # 基础P值（阶段2中作为参考，实际使用自适应P值）
+i_value: 0.0           # I值（当前未使用）
+d_value: 0.0           # D值（当前未使用）
+
+# ==== 阶段2：速度自适应参数 ====
+min_p_value: 0.2       # 低速时的最小P值（当速度=0时使用）
+max_p_value: 0.8       # 高速时的最大P值（当速度=v_max时使用）
+v_max_for_adaptation: 0.8  # 自适应参考最大速度 [m/s]
+
+# ==== 阶段2算法说明 ====
+# 自适应P值计算公式：
+# speed_ratio = min(current_speed / v_max_for_adaptation, 1.0)
+# adaptive_p = min_p_value + (max_p_value - min_p_value) * speed_ratio
+#
+# 预期效果：
+# - 静止时（速度=0）：P = 0.2（平滑启动）
+# - 低速时（速度=0.2）：P = 0.35（渐进控制）
+# - 中速时（速度=0.4）：P = 0.5（平衡性能）
+# - 高速时（速度=0.8）：P = 0.8（快速响应）
+#
+# 调试建议：
+# 1. 如果启动太慢：增大 min_p_value (0.2 -> 0.3)
+# 2. 如果高速不稳：减小 max_p_value (0.8 -> 0.6)
+# 3. 如果响应不够：增大 v_max_for_adaptation (0.8 -> 1.0)

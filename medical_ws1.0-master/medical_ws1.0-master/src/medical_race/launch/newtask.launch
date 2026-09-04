@@ -1,0 +1,21 @@
+<launch>
+    <!-- 加载PID控制参数 -->
+    <rosparam file="$(find pid_tracking)/params/pid.yaml" command="load" />
+    
+    <!-- 加载距离数据参数（目标点2和3的精确定位距离） -->
+    <rosparam file="$(find robcup)/data/distance.yaml" command="load" />
+    
+    <!-- 启动完整任务脚本（三阶段导航版本） -->
+    <node pkg="pid_tracking" name="newtask_all" type="newtask_all.py" output="screen" /> 
+    
+    <!-- 启动激光雷达距离测量节点 -->
+    <node pkg="robcup" name="LidarLine" type="GetDistanceByLidarLine.py" /> 
+    
+    <!-- 启动屏幕显示节点 -->
+    <node pkg="robcup" name="lidar_distance" type="DisplayScreen.py" /> 
+    
+    <!-- 可选：启动RViz可视化（取消注释以启用） -->
+    <!-- <node pkg="rviz" type="rviz" name="rviz" args="-d $(find medical_race)/launch/rviz.rviz"/> -->
+
+</launch>
+

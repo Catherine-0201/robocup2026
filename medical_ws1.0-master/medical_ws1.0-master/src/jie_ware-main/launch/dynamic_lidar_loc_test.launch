@@ -1,0 +1,12 @@
+<launch>
+  <!-- Run this launch instead of lidar_loc_test.launch; do not start both,
+       because both publish map -> odom. -->
+  <arg name="map_file" default="$(find medical_race)/map/map4.yaml"/>
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)"/>
+
+  <node pkg="jie_ware" type="dynamic_lidar_localizer" name="dynamic_lidar_localizer" output="screen">
+    <rosparam file="$(find jie_ware)/config/dynamic_lidar_localizer.yaml" command="load"/>
+  </node>
+
+  <node pkg="jie_ware" type="set_initial_pose.py" name="set_initial_pose" output="screen" respawn="false"/>
+</launch>

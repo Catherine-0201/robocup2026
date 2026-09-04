@@ -1,0 +1,135 @@
+<launch>
+
+    <!-- ============================================= -->
+    <!-- 阶段1：NavfnRuckig医疗机器人路径规划器         -->
+    <!-- 功能：NavfnROS全局规划 + ruckig轨迹生成       -->
+    <!-- 特性：速度分段加速度限制（可参数化配置）        -->
+    <!-- ============================================= -->
+    
+    <node pkg="auto_nav" type="navfn_ruckig_planner.py" name="navfn_ruckig_planner" respawn="true" output="screen" >
+        
+        <!-- ========== 基础运动参数 ========== -->
+        <param name="global_frame" value="map"/>
+        <param name="robot_frame" value="base_footprint"/>
+        <param name="plan_frequency" value="20"/>            <!-- 控制频率 [Hz] - 参考原adaptive设置 -->
+        
+        <!-- 适应医疗场景的速度设置 -->
+        <param name="max_velocity" value="1.0"/>             <!-- 整体最大速度 [m/s] -->
+        <param name="set_yaw_speed" value="0.2"/>            <!-- 角速度 [rad/s] -->
+        
+        <!-- 路径跟踪精度参数 -->
+        <param name="goal_dist_tolerance" value="0.25"/>     <!-- 目标距离容忍度 [m] -->
+        <param name="prune_ahead_distance" value="1.0"/>     <!-- 前瞻距离 [m] -->
+        
+        <!-- ========== ruckig轨迹生成参数 ========== -->
+        <param name="trajectory_time_step" value="0.1"/>     <!-- 轨迹时间步长 [s] -->
+        <param name="trajectory_duration" value="3.0"/>      <!-- 轨迹最大时长 [s] -->
+        
+        <!-- ========== 速度分段加速度限制 ========== -->
+        <!-- 格式: [速度下限, 速度上限, x加速度限制, y加速度限制, 角加速度限制] -->
+        <!-- 单位: [m/s, m/s, m/s², m/s², rad/s²] -->
+        <rosparam param="velocity_acceleration_limits">
+            # 超低速区间：极保守的加速度，确保医疗机器人平稳启动
+            - [0.0, 0.2, 0.1, 0.1, 0.1]
+            # 低速区间：保守的加速度，适合室内精确导航
+            # - [0.2, 0.5, 0.2, 0.2, 0.2]
+            # 可以继续添加更多速度区间，例如：
+            # - [0.5, 1.0, 0.3, 0.3, 0.3]  # 中速区间
+            # - [1.0, 1.5, 0.4, 0.4, 0.4]  # 高速区间
+        </rosparam>
+        
+        <!-- ========== 阈值化重规划参数 ========== -->
+        <!-- 功能：减少全局路径高频抖动，只有偏差较大时才接受新路径 -->
+        <param name="enable_path_threshold" value="true"/>           <!-- 是否启用阈值化重规划 -->
+        <param name="path_distance_threshold" value="0.3"/>          <!-- 路径距离阈值 [m] -->
+        <param name="path_angle_threshold" value="0.52"/>            <!-- 路径角度阈值 [rad] (~30度) -->
+        <param name="path_update_min_interval" value="1.0"/>         <!-- 路径更新最小时间间隔 [s] -->
+        <param name="path_comparison_points" value="5"/>             <!-- 用于比较的路径点数量 -->
+        
+        <!-- ========== 医疗机器人特定参数 ========== -->
+        <param name="emergency_stop_enabled" value="true"/>          <!-- 是否启用紧急停止功能 -->
+        <param name="max_planning_time" value="1.0"/>               <!-- 最大规划时间 [s] -->
+        <param name="recovery_enabled" value="true"/>               <!-- 是否启用恢复行为 -->
+        
+        <!-- ========== 预期效果说明 ========== -->
+        <!-- 速度 0.0-0.5 m/s -> 加速度限制 [0.2, 0.2, 0.5] (平稳启动) -->
+        <!-- 速度 0.5-1.0 m/s -> 加速度限制 [0.3, 0.3, 0.8] (平衡性能) -->
+        
+        <!-- ========== 调试参数建议 ========== -->
+        <!-- 如果启动太慢：增大第一个区间的加速度限制 (0.2 -> 0.3) -->
+        <!-- 如果高速震荡：减小高速区间的加速度限制 (0.3 -> 0.25) -->
+        <!-- 如果响应不够：减小trajectory_time_step (0.1 -> 0.05) -->
+        
+        <!-- 重要：将输出话题重映射到wheeltec_robot订阅的/cmd_vel -->
+        <remap from="/base_vel" to="/cmd_vel" />
+        
+        <!-- 订阅move_base的全局路径 -->
+        <remap from="/move_base/NavfnROS/plan" to="/move_base/NavfnROS/plan" />
+        
+    </node>
+
+    <!-- 可选：启动参数监控节点（设置if="true"来启用） -->
+    <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="navfn_ruckig_tuner" output="screen" if="false">
+        <!-- 实时参数调节界面，方便现场调试 -->
+    </node>
+    
+    <!-- 可选：路径可视化节点 -->
+    <node pkg="auto_nav" type="path_visualizer.py" name="navfn_ruckig_visualizer" output="screen" if="false">
+        <param name="global_path_topic" value="/move_base/NavfnROS/plan"/>
+        <param name="local_path_topic" value="/navfn_ruckig/local_path"/>
+        <param name="ruckig_trajectory_topic" value="/navfn_ruckig/ruckig_trajectory"/>
+    </node>
+
+    <!-- ========== NavfnRuckig速度和加速度监视系统 ========== -->
+    <!-- ========== RQT可视化监控系统 ========== -->
+    <!-- 参数：是否启用rqt监控（可以设为false禁用监控） -->
+    <arg name="enable_rqt_monitor" default="true"/>
+    
+    <group if="$(arg enable_rqt_monitor)">
+        <!-- NavfnRuckig速度监控：X,Y速度和角速度 -->
+        <node pkg="rqt_plot" type="rqt_plot" name="navfn_ruckig_velocity_monitor" 
+              args="/monitor/velocity/x /monitor/velocity/y /monitor/velocity/angular" 
+              output="screen" respawn="true"/>
+        
+        <!-- NavfnRuckig加速度监控：X,Y加速度和角加速度 -->
+        <node pkg="rqt_plot" type="rqt_plot" name="navfn_ruckig_acceleration_monitor" 
+              args="/monitor/acceleration/x /monitor/acceleration/y /monitor/acceleration/angular" 
+              output="screen" respawn="true"/>
+        
+        <!-- 速度和加速度大小监控 -->
+        <node pkg="rqt_plot" type="rqt_plot" name="navfn_ruckig_magnitude_monitor" 
+              args="/monitor/speed_magnitude /monitor/acceleration_magnitude" 
+              output="screen" respawn="true"/>
+        
+        <!-- 原始cmd_vel监控（对比验证ruckig效果） -->
+        <node pkg="rqt_plot" type="rqt_plot" name="navfn_ruckig_cmd_vel_monitor" 
+              args="/cmd_vel/linear/x /cmd_vel/linear/y /cmd_vel/angular/z" 
+              output="screen" respawn="true"/>
+        
+        <!-- 可选：NavfnRuckig专用参数动态调节 -->
+        <!-- <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="navfn_ruckig_reconfigure" output="screen"/> -->
+        
+        <!-- 可选：ruckig轨迹效果监控（如果有轨迹发布话题） -->
+        <!-- <node pkg="rqt_plot" type="rqt_plot" name="navfn_ruckig_trajectory_monitor" 
+              args="/navfn_ruckig_planner/local_path" output="screen" respawn="true"/> -->
+    </group>
+
+    <!-- ========== NavfnRuckig监控系统使用说明 ========== -->
+    <!-- 启动NavfnRuckig规划器后将显示以下监控窗口：
+         1. navfn_ruckig_velocity_monitor: X,Y速度和角速度实时曲线
+         2. navfn_ruckig_acceleration_monitor: X,Y加速度和角加速度实时曲线  
+         3. navfn_ruckig_magnitude_monitor: 合成速度和加速度大小
+         4. navfn_ruckig_cmd_vel_monitor: 原始速度指令对比
+         
+         监控验证：
+         - 验证速度分段加速度限制是否生效
+         - 观察[0.0, 0.2, 0.1, 0.1, 0.1]配置的实际效果
+         - 检查ruckig轨迹生成的平滑性
+         - 对比原adaptive_pid的控制效果
+         
+         使用方法：
+         启用监控: roslaunch auto_nav navfn_ruckig_planner.launch
+         禁用监控: roslaunch auto_nav navfn_ruckig_planner.launch enable_rqt_monitor:=false
+    -->
+
+</launch>

@@ -1,0 +1,45 @@
+# 导航点坐标配置
+#
+# 使用方法：
+# 1. 启动 get_point.launch，在界面中查看 /tf_xy 显示的现场地图坐标；
+# 2. 将护士台、床位1、床位3和家的 x/y 填入下方；
+# 3. yaw 单位为弧度；
+# 4. 运行时是否到达不使用这些坐标计算距离，只等待 /target_done 递增。
+#
+# 下列坐标沿用当前工程已有值。实车测试前请用现场记录值覆盖。
+
+route:
+  - nurse
+  - bed1
+  - bed3
+  - home
+
+waypoints:
+  nurse:
+    label: "护士台"
+    x: 1.00
+    y: 0.00
+    yaw: 0.00
+    hold_seconds: 5.0
+
+  bed1:
+    label: "床位1"
+    x: 5.30
+    y: 2.00
+    yaw: 0.00
+    hold_seconds: 5.0
+
+  bed3:
+    label: "床位3"
+    x: 5.30
+    y: -1.60
+    yaw: 0.00
+    hold_seconds: 5.0
+
+  home:
+    label: "家/起点"
+    x: 0.00
+    y: 0.00
+    yaw: 0.00
+    hold_seconds: 0.0
+

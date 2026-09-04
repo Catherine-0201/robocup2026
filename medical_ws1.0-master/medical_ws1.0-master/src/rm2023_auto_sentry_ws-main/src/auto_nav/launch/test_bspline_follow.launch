@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<launch>
+
+    <!-- ========================================= -->
+    <!-- B样条轨迹跟踪控制器 + move_base支持         -->
+    <!-- 功能：使用B样条插值生成平滑轨迹              -->
+    <!-- 特点：前馈控制，无PID反馈控制                -->
+    <!-- 集成：包含move_base全局路径规划支持          -->
+    <!-- ========================================= -->
+
+    <!-- 使用TF变换直接发布/amcl_pose话题，替代原来的relay方式 -->
+    <node pkg="robcup" type="amcl_pub" name="amcl_pub" output="screen" />
+    
+    <!-- 可选：如果需要从rviz设置初始位姿，添加反向映射 -->
+    <!-- <node pkg="topic_tools" type="relay" name="initialpose_relay" 
+          args="/initialpose /unified_initialpose" output="screen"/> -->
+
+    <!-- Launch the move base with time elastic band -->
+    <!-- 改为false，因为是实际机器人运行，不是仿真 -->
+    <param name="/use_sim_time" value="false"/>
+    
+    <!-- move_base节点已注释，由Python代码动态控制move_base.launch -->
+    <!-- 
+    <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+        <rosparam file="$(find auto_nav)/config/point_pid_params/test_medical_params/test_costmap_common_params.yaml" command="load" ns="global_costmap" />
+        <rosparam file="$(find auto_nav)/config/point_pid_params/test_medical_params/test_costmap_common_params.yaml" command="load" ns="local_costmap" />
+        <rosparam file="$(find auto_nav)/config/point_pid_params/test_medical_params/test_local_costmap_params.yaml" command="load" />
+        <rosparam file="$(find auto_nav)/config/point_pid_params/test_medical_params/test_global_costmap_params.yaml" command="load" />
+        <rosparam file="$(find auto_nav)/config/point_pid_params/test_medical_params/test_teb_local_planner_params.yaml" command="load" />
+        
+        <param name="base_global_planner" value="global_planner/GlobalPlanner" />
+        <param name="planner_frequency" value="1.0" />
+        <param name="planner_patience" value="5.0" />
+        <param name="use_dijkstra" value="false" />
+        <param name="clearing_rotation_allowed" value="false" />
+        
+        <!-- 重要修改：将move_base的cmd_vel输出重映射，避免与B样条控制器冲突 -->
+        <remap from="/cmd_vel" to="/move_base_cmd_vel" />
+    </node>
+   
+    
+    <!-- B样条轨迹跟踪控制器节点 -->
+    <!-- 
+    数据流：
+    1. 订阅 /move_base/GlobalPlanner/plan (全局路径)
+    2. 订阅 /handsfree/imu (IMU数据，获取yaw角度)
+    3. 生成B样条轨迹并执行前馈控制
+    4. 发布 /cmd_vel_C (C++速度指令)
+    -->
+    <node pkg="auto_nav" type="test_Bspline_follow" name="bspline_position_follow" respawn="true" output="screen" >
+        
+        <!-- ========== B样条轨迹跟踪参数 ========== -->
+        
+        <!-- 加速度限制参数 -->
+        <param name="a_max" value="0.2"/>                   <!-- 线加速度上限 [m/s²] -->
+        <param name="d_max" value="0.2"/>                   <!-- 线减速度上限 [m/s²] -->
+        <param name="a_lat_max" value="0.1"/>               <!-- 横向加速度上限 [m/s²] -->
+        
+        <!-- 速度限制参数 -->
+        <param name="max_linear_speed" value="0.5"/>        <!-- 最大线速度限制 [m/s] -->
+        <param name="max_angular_speed" value="0.2"/>       <!-- 最大角速度限制 [rad/s] -->
+        
+        <!-- 路径跟踪参数 -->
+        <param name="lookahead_idx" value="3"/>             <!-- 前视索引，避免抖动 -->
+        <param name="goal_dist_tolerance" value="0.04"/>     <!-- 目标距离容忍度 [m] -->
+        
+        <!-- 角度控制参数 -->
+        <param name="yaw_pid" value="0.5"/>                 <!-- yaw角度环PID参数 -->
+        
+    </node>
+
+    <!-- 速度命令监控器节点 -->
+    <!-- 
+    功能：
+    1. 订阅 /cmd_vel_P (Python发布的速度命令)
+    2. 订阅 /cmd_vel_C (C++发布的速度命令)
+    3. 订阅 /arm_done (机械臂完成信号)
+    4. 订阅 /target_done (目标完成信号)
+    5. 根据监控逻辑决定发布哪个速度命令到 /cmd_vel
+    -->
+    <node pkg="auto_nav" type="cmd_vel_monitor" name="cmd_vel_monitor" respawn="true" output="screen" />
+
+    <!-- 可选：启动参数监控节点 -->
+    <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="bspline_tuner" output="screen" if="false">
+        <!-- 实时参数调节界面，方便现场调试 -->
+    </node>
+
+    <!-- 可选：启动轨迹可视化 -->
+    <node pkg="rviz" type="rviz" name="bspline_rviz" args="-d $(find auto_nav)/config/rviz/bspline_trajectory.rviz" if="false">
+        <!-- B样条轨迹可视化界面 -->
+    </node>
+
+</launch>

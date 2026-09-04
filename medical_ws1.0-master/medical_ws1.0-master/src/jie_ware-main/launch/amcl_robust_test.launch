@@ -1,0 +1,34 @@
+<launch>
+  <!-- Do not run lidar_loc, lidar_loc_copy, dynamic_lidar_localizer, or any
+       other map->odom broadcaster together with this launch. -->
+  <arg name="start_map_server" default="true"/>
+  <arg name="map_file" default="/home/jetson/code_files/map/map2.yaml"/>
+  <arg name="scan_topic" default="/scan"/>
+  <!-- Set start_rviz:=false when RViz is already open. -->
+  <arg name="start_rviz" default="true"/>
+  <arg name="rviz_config" default="$(find jie_ware)/rviz/amcl_navigation.rviz"/>
+
+  <node if="$(arg start_map_server)"
+        name="map_server"
+        pkg="map_server"
+        type="map_server"
+        args="$(arg map_file)"
+        output="screen"/>
+
+  <node name="amcl"
+        pkg="amcl"
+        type="amcl"
+        clear_params="true"
+        output="screen">
+    <rosparam file="$(find jie_ware)/config/amcl_robust.yaml" command="load"/>
+    <remap from="scan" to="$(arg scan_topic)"/>
+  </node>
+
+  <!-- Open the map-frame RViz layout automatically for AMCL initialization. -->
+  <node if="$(arg start_rviz)"
+        name="rviz"
+        pkg="rviz"
+        type="rviz"
+        args="-d $(arg rviz_config)"
+        output="screen"/>
+</launch>

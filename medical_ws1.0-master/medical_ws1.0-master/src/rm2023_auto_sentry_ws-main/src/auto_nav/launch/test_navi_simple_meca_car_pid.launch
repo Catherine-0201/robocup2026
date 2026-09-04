@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<launch>
+
+ 
+  <!-- 保留RViz可视化 -->
+  <!-- <node pkg="rviz" type="rviz" name="rviz" args="-d $(find auto_nav)/config/rviz/auto_navi_demo.rviz"/> -->
+
+  <!-- 注释掉原来的scan_to_map定位，使用jie_ware的lidar_loc定位 -->
+  <!-- <include file="$(find scan_to_map)/launch/scan_to_map_location.launch"/> -->
+
+  <!-- 话题重映射：将jie_ware的统一位姿话题映射为move_base期望的amcl_pose话题 -->
+  <node pkg="topic_tools" type="relay" name="unified_pose_to_amcl_relay" 
+        args="/unified_pose /amcl_pose" output="screen"/>
+  
+  <!-- 可选：如果需要从rviz设置初始位姿，添加反向映射 -->
+  <!-- <node pkg="topic_tools" type="relay" name="initialpose_relay" 
+        args="/initialpose /unified_initialpose" output="screen"/> -->
+
+  
+  <!-- Launch the move base with time elastic band -->
+  <!-- 改为false，因为是实际机器人运行，不是仿真 -->
+  <param name="/use_sim_time" value="false"/>
+  
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <!-- 使用测试版本的配置文件，适配medical_race系统 -->
+    <rosparam file="$(find auto_nav)/config/point_pid_params/test_medical_params/test_costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find auto_nav)/config/point_pid_params/test_medical_params/test_costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find auto_nav)/config/point_pid_params/test_medical_params/test_local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find auto_nav)/config/point_pid_params/test_medical_params/test_global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find auto_nav)/config/point_pid_params/test_medical_params/test_teb_local_planner_params.yaml" command="load" />
+    
+    <param name="base_global_planner" value="global_planner/GlobalPlanner" />
+    <!--<param name="neutral_cost" value="220" />-->
+    <param name="planner_frequency" value="3.0" />
+    <param name="planner_patience" value="5.0" />
+    <param name="use_dijkstra" value="false" />
+    
+    <!-- <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" />
+    <param name="controller_frequency" value="20.0" />
+    <param name="controller_patience" value="15.0" /> -->
+
+    <param name="clearing_rotation_allowed" value="false" />
+    
+    <!-- 重要修改：将move_base的cmd_vel输出重映射，避免与PID控制器冲突 -->
+    <remap from="/cmd_vel" to="/move_base_cmd_vel" />
+  </node>
+
+  <!-- 原来的PID跟踪规划器（已注释） -->
+  <!-- <include file="$(find auto_nav)/launch/test_pid_follow_planner.launch"/> -->
+  
+  <!-- 阶段2：速度自适应PID控制器（参数已直接写在launch文件中） -->
+  <include file="$(find auto_nav)/launch/test_adaptive_pid_follow_planner.launch"/>
+
+</launch>

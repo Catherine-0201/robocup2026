@@ -1,0 +1,29 @@
+# 动态障碍物过滤器配置文件
+
+# 坐标系名称
+map_frame: "map"
+base_frame: "base_footprint"
+laser_frame: "laser"
+
+# 动态障碍物检测参数 (为新障碍物优化)
+static_tolerance: 0.2              # 静态特征容差 (米) - 降低提高敏感度
+min_consecutive_detections: 2      # 最少连续检测次数 - 减少快速响应
+temporal_window: 3.0               # 时间窗口 (秒) - 缩短提高实时性
+min_static_points_ratio: 0.7       # 最少静态点比例 - 提高要求更严格过滤
+
+# 过滤策略
+filter_strategy: "map_based"       # 过滤策略: map_based, temporal, hybrid
+check_radius: 2                    # 障碍物检查半径 (栅格)
+free_space_threshold: 0.2          # 自由空间阈值
+unknown_space_handling: "conservative"  # 未知空间处理: conservative, aggressive, ignore
+
+# 置信度计算
+high_confidence_threshold: 0.8     # 高置信度阈值
+medium_confidence_threshold: 0.6   # 中等置信度阈值
+low_confidence_threshold: 0.4      # 低置信度阈值
+
+# 调试选项 (启用以监控过滤效果)
+publish_filtered_scan: true        # 是否发布过滤后的激光数据
+publish_dynamic_obstacles: true    # 是否发布动态障碍物数据
+enable_visualization: true         # 是否启用可视化 - 启用以便在rviz中观察
+debug_mode: true                   # 调试模式 - 启用详细日志

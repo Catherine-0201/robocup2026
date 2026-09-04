@@ -1,0 +1,17 @@
+<launch>
+  <!-- 测试垂直校正功能的launch文件 -->
+  
+  <!-- 启动robot_pose_ekf扩展卡尔曼滤波节点 -->
+  <include file="$(find medical_race)/launch/robot_pose_ekf.launch" />
+  
+  <!-- 启动激光雷达距离检测节点 -->
+  <node pkg="robcup" name="LidarLine" type="GetDistanceByLidarLine.py" output="screen" />
+  
+  <!-- 启动垂直校正节点 -->
+  <node pkg="robcup" name="VerticalDirection" type="VerticalDirection.py" output="screen" />
+  
+  <!-- 启动信息监控 -->
+  <node pkg="rostopic" type="rostopic" name="echo_lidar" output="screen" args="echo /lidar_distances" />
+  <node pkg="rostopic" type="rostopic" name="echo_vertical" output="screen" args="echo /vertical_correction_info" />
+  
+</launch>

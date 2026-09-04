@@ -1,0 +1,50 @@
+<launch>
+  <!-- This launch starts only the new master controller. Start the existing
+       localization and navigation stacks separately; see the README. -->
+  <arg name="auto_start" default="false" />
+  <arg name="default_task_code" default="11" />
+  <arg name="skip_station_actions" default="true" />
+  <arg name="task_code_wait_seconds" default="5.0" />
+  <arg name="require_fresh_task_code" default="true" />
+
+  <node pkg="medical_race"
+        type="medical_competition_master.py"
+        name="medical_competition_master"
+        output="screen"
+        required="true">
+    <rosparam command="load" file="$(find medical_race)/config/competition_waypoints.yaml" />
+    <param name="auto_start" value="$(arg auto_start)" />
+    <param name="default_task_code" value="$(arg default_task_code)" />
+    <param name="skip_station_actions" value="$(arg skip_station_actions)" />
+    <param name="task_code_wait_seconds" value="$(arg task_code_wait_seconds)" />
+    <param name="require_fresh_task_code" value="$(arg require_fresh_task_code)" />
+
+    <!-- 与 medical_ws 现有定位、PID导航接口保持一致。 -->
+    <param name="pose_topic" value="/unified_pose" />
+    <param name="localization_status_topic" value="/localization_status" />
+    <param name="target_done_topic" value="/target_done" />
+    <param name="cmd_vel_topic" value="/cmd_vel" />
+    <param name="move_base_action" value="/move_base" />
+    <param name="pid_status_service" value="/pid_planner_status" />
+    <param name="clear_costmaps_service" value="/move_base/clear_costmaps" />
+
+    <param name="competition_timeout" value="180.0" />
+    <param name="reserve_home_seconds" value="35.0" />
+    <param name="home_stop_seconds" value="5.5" />
+    <param name="goal_retries" value="1" />
+    <param name="localization_freshness" value="2.0" />
+    <param name="initial_localization_timeout" value="20.0" />
+    <!-- ICP失效后允许现有 unified_pose 的里程计/IMU后备定位短时接管。 -->
+    <param name="max_fallback_seconds" value="10.0" />
+    <param name="relocalization_wait_seconds" value="8.0" />
+    <param name="dependency_timeout" value="20.0" />
+    <!-- 下发新目标后先保持停车，等待 GlobalPlanner 发布新路径，再启用PID。 -->
+    <param name="goal_settle_seconds" value="0.6" />
+    <param name="stop_publish_cycles" value="5" />
+    <param name="require_pid_service" value="true" />
+    <!-- 正式运行要求 /target_done 或 move_base SUCCEEDED，不能只凭距离误判到点。 -->
+    <param name="allow_distance_only_arrival" value="false" />
+    <param name="station_hold_seconds" value="2.0" />
+    <param name="station_action_timeout" value="30.0" />
+  </node>
+</launch>
