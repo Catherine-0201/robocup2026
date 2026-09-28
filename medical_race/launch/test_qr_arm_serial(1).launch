@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- 仅测试 GM65 -> Orin -> STM32；不启动导航，也不控制底盘。 -->
+  <arg name="arm_port" default="/dev/arm"/>
+  <arg name="arm_baud_rate" default="115200"/>
+  <arg name="reply_timeout" default="30.0"/>
+
+  <node pkg="medical_race"
+        type="test_qr_arm_serial.py"
+        name="test_qr_arm_serial"
+        output="screen">
+    <param name="scan_topic" value="/gm65_data"/>
+    <param name="arm_port" value="$(arg arm_port)"/>
+    <param name="arm_baud_rate" value="$(arg arm_baud_rate)"/>
+    <param name="reply_timeout" value="$(arg reply_timeout)"/>
+    <param name="success_reply" value="1"/>
+  </node>
+</launch>
