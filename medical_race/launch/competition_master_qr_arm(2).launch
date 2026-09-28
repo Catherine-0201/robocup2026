@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    二维码 + 双床机械臂总控：
+      护士台 -> 扫码 -> 首床发送扫码两位码 -> 等待STM32回复1
+      -> 第二床发送配对两位码 -> 等待STM32回复2 -> 返回起点。
+
+    本节点直接独占 /dev/arm。不要同时启动 arm.py、task_new.py、
+    push_test.py 或其他打开相同机械臂串口的程序。
+  -->
+  <arg name="waypoints_file"
+       default="$(find medical_race)/config/competition_waypoints.yaml"/>
+  <arg name="nurse_hold_seconds" default="2.0"/>
+  <arg name="arm_port" default="/dev/arm"/>
+  <arg name="arm_baud_rate" default="115200"/>
+  <arg name="arm_reply_timeout" default="60.0"/>
+
+  <node pkg="medical_race"
+        type="medical_competition_master_qr_arm.py"
+        name="medical_competition_master_qr_arm"
+        output="screen">
+    <rosparam command="load" file="$(arg waypoints_file)"/>
+    <param name="frame_id" value="map"/>
+    <param name="move_base_action" value="/move_base"/>
+    <param name="target_done_topic" value="/target_done"/>
+    <param name="scan_topic" value="/gm65_data"/>
+    <param name="nurse_hold_seconds" value="$(arg nurse_hold_seconds)"/>
+
+    <param name="arm_port" value="$(arg arm_port)"/>
+    <param name="arm_baud_rate" value="$(arg arm_baud_rate)"/>
+    <param name="arm_reply_timeout" value="$(arg arm_reply_timeout)"/>
+    <param name="arm_first_success_reply" value="1"/>
+    <param name="arm_second_success_reply" value="2"/>
+    <param name="arm_command_topic" value="/arm_command_sent"/>
+  </node>
+</launch>
