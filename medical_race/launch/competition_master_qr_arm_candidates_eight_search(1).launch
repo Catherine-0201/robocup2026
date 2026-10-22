@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Eight nearby nurse navigation positions, without in-place rotation.
+       Pair with hybrid_bspline_pid_navigation_strict_ab_staged_wall_per_bed.launch.
+       Both beds must have candidates in bed_candidates_file; no fallback to
+       competition_waypoints.yaml bed coordinates. Keep only one competition
+       master and one navigation launch running. -->
+  <arg name="waypoints_file"
+       default="$(find medical_race)/config/competition_waypoints.yaml"/>
+  <arg name="bed_candidates_file"
+       default="$(find medical_race)/config/bed_navigation_candidates.yaml"/>
+  <arg name="nurse_hold_seconds" default="2.0"/>
+  <arg name="nurse_goal_timeout" default="60.0"/>
+  <arg name="search_goal_timeout" default="15.0"/>
+  <arg name="search_total_timeout" default="120.0"/>
+  <arg name="search_pause" default="1.0"/>
+  <arg name="search_offset" default="0.30"/>
+  <arg name="arm_port" default="/dev/arm"/>
+  <arg name="arm_baud_rate" default="115200"/>
+  <arg name="arm_reply_timeout" default="40.0"/>
+
+  <node pkg="medical_race"
+        type="medical_competition_master_qr_arm_candidates_eight_search.py"
+        name="medical_competition_master_qr_arm_candidates_eight_search"
+        output="screen">
+    <rosparam command="load" file="$(arg waypoints_file)"/>
+    <rosparam command="load" file="$(arg bed_candidates_file)"/>
+    <param name="make_plan_service" value="/move_base/make_plan"/>
+    <param name="frame_id" value="map"/>
+    <param name="move_base_action" value="/move_base"/>
+    <param name="target_done_topic" value="/target_done"/>
+    <param name="scan_topic" value="/gm65_data"/>
+    <param name="nurse_hold_seconds" value="$(arg nurse_hold_seconds)"/>
+    <param name="nurse_goal_timeout" value="$(arg nurse_goal_timeout)"/>
+    <param name="search_goal_timeout" value="$(arg search_goal_timeout)"/>
+    <param name="search_total_timeout" value="$(arg search_total_timeout)"/>
+    <param name="search_pause" value="$(arg search_pause)"/>
+    <param name="search_offset" value="$(arg search_offset)"/>
+    <param name="arm_port" value="$(arg arm_port)"/>
+    <param name="arm_baud_rate" value="$(arg arm_baud_rate)"/>
+    <param name="arm_reply_timeout" value="$(arg arm_reply_timeout)"/>
+    <param name="arm_first_success_reply" value="1"/>
+    <param name="arm_second_success_reply" value="2"/>
+    <param name="arm_command_topic" value="/arm_command_sent"/>
+  </node>
+</launch>
